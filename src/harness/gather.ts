@@ -8,12 +8,14 @@
 // path the recipe names.
 // =============================================================================
 
+import { App, TFile } from 'obsidian';
 import type { MuninnApi, TagInfo, Hit, ChunkRef } from '../muninn-api.ts';
 import type { LoadedRecipe, GatheredInput, RecipeInput } from '../recipes/types.ts';
 import type { InputGatherer } from './harness.ts';
 
 export interface MuninnGathererOptions {
     api: MuninnApi;
+    app: App;
     /** Fallback value for `targetPath` if not provided in params. */
     defaultTargetPath?: string;
 }
@@ -36,6 +38,10 @@ export class MuninnApiInputGatherer implements InputGatherer {
         switch (input.source) {
             case 'recipe-param':
                 return params[input.key] ?? this.opts.defaultTargetPath ?? null;
+            case 'content': {
+                const path = String(params[input.key] ?? this.opts.defaultTargetPath ?? '');
+                return this.gatherContent(path);
+            }
             case 'vocabulary':
                 return this.gatherVocabulary();
             case 'query': {
@@ -68,5 +74,15 @@ export class MuninnApiInputGatherer implements InputGatherer {
     private gatherRelatedChunks(path: string): { neighbors: ChunkRef[] } | null {
         if (!path || path.length === 0) return null;
         return this.opts.api.relatedChunks(path, 10);
+    }
+
+    private async gatherContent(path: string): Promise<{ content: string } | null> {
+        if (!path || path.length === 0) return null;
+        const file = this.opts.app.vault.getAbstractFileByPath(path);
+        if (!file || !(file instanceof TFile)) {
+            return null;
+        }
+        const content = await this.opts.app.vault.cachedRead(file);
+        return { content };
     }
 }

@@ -41,13 +41,25 @@ export function createDefaultApplyRegistry(): ApplyRegistry {
         };
     });
     registry.register('suggest-tags', async (recipe, output): Promise<ApplyResult> => {
-        // v1 is suggest/read-only only. The harness returns a structured
-        // suggestion with no vault write. A future write-class gate would
-        // convert this into a frontmatter edit through Obsidian's APIs.
         const typed = output as { tag?: string; reason?: string; confidence?: number };
         return {
             applied: false,
             message: `suggest-tags for ${recipe.metadata.name}: propose tag '${typed.tag ?? 'none'}' (${typed.reason ?? 'no reason'}). Approved by user, but write-class apply is deferred; no file was modified.`,
+        };
+    });
+    registry.register('suggest-title', async (recipe, output): Promise<ApplyResult> => {
+        const typed = output as { title?: string; reason?: string; confidence?: number };
+        return {
+            applied: false,
+            message: `suggest-title for ${recipe.metadata.name}: propose title '${typed.title ?? 'none'}' (${typed.reason ?? 'no reason'}). Approved by user, but write-class apply is deferred; no file was modified.`,
+        };
+    });
+    registry.register('suggest-links', async (recipe, output): Promise<ApplyResult> => {
+        const typed = output as { links?: string[]; confidence?: number };
+        const links = Array.isArray(typed.links) ? typed.links : [];
+        return {
+            applied: false,
+            message: `suggest-links for ${recipe.metadata.name}: propose links [${links.join(', ')}]. Approved by user, but write-class apply is deferred; no file was modified.`,
         };
     });
     return registry;

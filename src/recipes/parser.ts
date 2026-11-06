@@ -162,7 +162,7 @@ function parseInputsSection(text: string | undefined, errors: string[]): RecipeI
             errors.push(`Invalid input entry (missing key or description): ${entry.slice(0, 40)}`);
             continue;
         }
-        if (!source || !['query', 'path', 'vocabulary', 'constant', 'recipe-param'].includes(source)) {
+        if (!source || !['query', 'path', 'vocabulary', 'constant', 'recipe-param', 'content'].includes(source)) {
             errors.push(`Invalid input source for ${key}: ${source}`);
             continue;
         }

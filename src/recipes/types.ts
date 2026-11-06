@@ -27,7 +27,7 @@ export interface RecipeInput {
     /** Description shown to the model; not a prompt. */
     description: string;
     /** Source of truth the harness gathers before rendering. */
-    source: 'query' | 'path' | 'vocabulary' | 'constant' | 'recipe-param';
+    source: 'query' | 'path' | 'vocabulary' | 'constant' | 'recipe-param' | 'content';
     /** For source 'query', the input key whose value is the search string. */
     queryKey?: string;
 }
