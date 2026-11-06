@@ -81,13 +81,25 @@ export default class HuginnPlugin extends Plugin {
     }
 
     private async awaitMuninnReady(): Promise<MuninnApi | null> {
-        const deadline = Date.now() + MUNINN_READY_TIMEOUT_MS;
+        const start = Date.now();
+        const deadline = start + MUNINN_READY_TIMEOUT_MS;
+        let pendingLogged = false;
         while (Date.now() < deadline) {
             const api = this.discoverMuninnApi();
             if (api !== null) return api;
+            if (!pendingLogged && Date.now() > start + 5000) {
+                // eslint-disable-next-line no-console
+                console.log('[Huginn] still waiting for Muninn to become ready...');
+                pendingLogged = true;
+            }
             await new Promise((resolve) => window.setTimeout(resolve, MUNINN_READY_POLL_MS));
         }
-        return this.discoverMuninnApi();
+        const api = this.discoverMuninnApi();
+        if (api === null) {
+            // eslint-disable-next-line no-console
+            console.warn('[Huginn] Muninn did not become ready within 30s. Is it installed and enabled?');
+        }
+        return api;
     }
 
     private async warmupChatModel(): Promise<void> {
@@ -110,8 +122,6 @@ export default class HuginnPlugin extends Plugin {
         const plugins = (this.app as unknown as { plugins?: { plugins?: Record<string, unknown> } }).plugins?.plugins;
         const muninn = plugins?.[MUNINN_PLUGIN_ID] as MuninnPluginLike | undefined;
         if (!muninn || typeof muninn.getMuninnApi !== 'function') {
-            // eslint-disable-next-line no-console
-            console.warn('[Huginn] Muninn plugin not found or missing getMuninnApi()');
             return null;
         }
         return muninn.getMuninnApi();

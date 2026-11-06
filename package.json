@@ -1,13 +1,14 @@
 {
   "name": "huginn",
-  "version": "0.1.0-test.2",
+  "version": "0.1.0-test.3",
   "description": "Huginn — Plugin 2: AI assistant for Obsidian (chat + skills)",
   "main": "main.js",
   "type": "module",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fixtures": "tsx src/fixtures/f01.ts && tsx src/fixtures/f02.ts"
   },
   "devDependencies": {
     "@types/node": "latest",
