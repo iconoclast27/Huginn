@@ -111,6 +111,11 @@ export class HuginnHarness {
             applyResult,
         };
     }
+
+    /** Best-effort warmup request to pull the chat model back into memory. */
+    async warmup(): Promise<void> {
+        await this.opts.llmClient.complete('Say "ok". Return only the word ok.');
+    }
 }
 
 // ---------------------------------------------------------------------------

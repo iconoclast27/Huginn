@@ -17,9 +17,12 @@ import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
 import { loadRecipes } from './recipes/loader.ts';
 import type { LoadedRecipe } from './recipes/types.ts';
 import type { MuninnApi } from './muninn-api.ts';
+import { RecipeChooserModal } from './ui/recipe-modal.ts';
 
 const MUNINN_PLUGIN_ID = 'muninn';
 const RECIPE_DIR = 'Agents/Huginn/SKILLS';
+const MUNINN_READY_POLL_MS = 500;
+const MUNINN_READY_TIMEOUT_MS = 30000;
 
 interface MuninnPluginLike {
     getMuninnApi(): MuninnApi | null;
@@ -43,33 +46,64 @@ export default class HuginnPlugin extends Plugin {
         this.addSettingTab(new HuginnSettingTab(this.app, this));
 
         this.addCommand({
-            id: 'run-test-recipe',
-            name: 'Run Huginn test recipe',
+            id: 'run-skill',
+            name: 'Run Huginn skill',
             callback: () => {
-                void this.runTestRecipe();
+                void this.runSkill();
             },
         });
 
         this.app.workspace.onLayoutReady(() => {
-            this.muninnApi = this.discoverMuninnApi();
-            if (this.muninnApi === null) {
-                new Notice('Huginn requires Muninn to be installed and enabled.');
-                return;
-            }
-            this.harness = new HuginnHarness({
-                llmClient: new OllamaChatClient({
-                    baseUrl: this.settings.ollamaUrl,
-                    model: this.settings.ollamaChatModel,
-                    systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
-                    timeoutMs: this.settings.chatTimeoutMs,
-                }),
-                inputGatherer: new MuninnApiInputGatherer({ api: this.muninnApi }),
-                approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
-                applyRegistry: createDefaultApplyRegistry(),
+            void this.awaitMuninnReady().then((api) => {
+                if (api === null) {
+                    new Notice('Huginn requires Muninn to be installed and enabled.');
+                    return;
+                }
+                this.muninnApi = api;
+                this.harness = new HuginnHarness({
+                    llmClient: new OllamaChatClient({
+                        baseUrl: this.settings.ollamaUrl,
+                        model: this.settings.ollamaChatModel,
+                        systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
+                        timeoutMs: this.settings.chatTimeoutMs,
+                    }),
+                    inputGatherer: new MuninnApiInputGatherer({ api }),
+                    approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
+                    applyRegistry: createDefaultApplyRegistry(),
+                });
+                // eslint-disable-next-line no-console
+                console.log('[Huginn] harness initialized against Muninn API');
+                if (this.settings.warmupOnFocus) {
+                    void this.warmupChatModel();
+                }
             });
-            // eslint-disable-next-line no-console
-            console.log('[Huginn] harness initialized against Muninn API');
         });
+    }
+
+    private async awaitMuninnReady(): Promise<MuninnApi | null> {
+        const deadline = Date.now() + MUNINN_READY_TIMEOUT_MS;
+        while (Date.now() < deadline) {
+            const api = this.discoverMuninnApi();
+            if (api !== null) return api;
+            await new Promise((resolve) => window.setTimeout(resolve, MUNINN_READY_POLL_MS));
+        }
+        return this.discoverMuninnApi();
+    }
+
+    private async warmupChatModel(): Promise<void> {
+        if (this.harness === null) return;
+        // eslint-disable-next-line no-console
+        console.log('[Huginn] warming up chat model...');
+        try {
+            // Send a trivial completion to pull the model back into memory.
+            await this.harness.warmup();
+            // eslint-disable-next-line no-console
+            console.log('[Huginn] chat model warmup complete');
+        } catch (e) {
+            // Warmup is best-effort; log but do not block the user.
+            // eslint-disable-next-line no-console
+            console.warn('[Huginn] chat model warmup failed:', (e as Error).message);
+        }
     }
 
     private discoverMuninnApi(): MuninnApi | null {
@@ -83,10 +117,26 @@ export default class HuginnPlugin extends Plugin {
         return muninn.getMuninnApi();
     }
 
-    private async runTestRecipe(): Promise<void> {
+    private async runSkill(): Promise<void> {
         if (this.harness === null || this.muninnApi === null) {
-            new Notice('Huginn harness is not ready. Is Muninn installed and enabled?');
-            return;
+            // Try one more lazy discovery in case Muninn loaded after Huginn's init.
+            const api = this.discoverMuninnApi();
+            if (api === null) {
+                new Notice('Huginn harness is not ready. Is Muninn installed and enabled?');
+                return;
+            }
+            this.muninnApi = api;
+            this.harness = new HuginnHarness({
+                llmClient: new OllamaChatClient({
+                    baseUrl: this.settings.ollamaUrl,
+                    model: this.settings.ollamaChatModel,
+                    systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
+                    timeoutMs: this.settings.chatTimeoutMs,
+                }),
+                inputGatherer: new MuninnApiInputGatherer({ api }),
+                approvalGate: new StaticApprovalGate(false),
+                applyRegistry: createDefaultApplyRegistry(),
+            });
         }
         const source = new ObsidianRecipeSource(this.app.vault, RECIPE_DIR);
         const loadResult = await loadRecipes(source);
@@ -96,17 +146,25 @@ export default class HuginnPlugin extends Plugin {
             new Notice(`No recipes found in ${RECIPE_DIR}`);
             return;
         }
-        const recipe: LoadedRecipe = loadResult.recipes[0] as LoadedRecipe;
+        if (loadResult.errors.length > 0) {
+            // eslint-disable-next-line no-console
+            console.warn('[Huginn] recipe load errors:', loadResult.errors);
+        }
+        new RecipeChooserModal(this.app, loadResult.recipes, this.settings.defaultTargetPath, (req) => {
+            if (req === null) return;
+            void this.runChosenRecipe(req.recipe, req.targetPath);
+        }).open();
+    }
+
+    private async runChosenRecipe(recipe: LoadedRecipe, targetPath: string): Promise<void> {
         // eslint-disable-next-line no-console
-        console.log('[Huginn] running test recipe:', recipe.metadata.name);
-        const result = await this.harness.run(recipe, { targetPath: 'notes/gamma.md', titleQuery: recipe.metadata.name }, {});
+        console.log('[Huginn] running recipe:', recipe.metadata.name, 'target:', targetPath);
+        const result = await this.harness!.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {});
         // eslint-disable-next-line no-console
         console.log('[Huginn] recipe result:', result);
     }
 }
 
-// ---------------------------------------------------------------------------
-// Settings tab
 // ---------------------------------------------------------------------------
 
 class HuginnSettingTab extends PluginSettingTab {
@@ -157,6 +215,27 @@ class HuginnSettingTab extends PluginSettingTab {
                         this.plugin.settings.chatTimeoutMs = n;
                         await this.plugin.saveData(this.plugin.settings);
                     }
+                }));
+
+        new Setting(containerEl)
+            .setName('Warm up chat model on load')
+            .setDesc('Send a trivial chat request when Huginn initializes so the model is already loaded in memory. Increases VRAM/RAM use.')
+            .addToggle((toggle) => toggle
+                .setValue(this.plugin.settings.warmupOnFocus)
+                .onChange(async (value) => {
+                    this.plugin.settings.warmupOnFocus = value;
+                    await this.plugin.saveData(this.plugin.settings);
+                }));
+
+        new Setting(containerEl)
+            .setName('Default target note path')
+            .setDesc('Default vault path used by the Run Huginn skill chooser.')
+            .addText((text) => text
+                .setPlaceholder('notes/gamma.md')
+                .setValue(this.plugin.settings.defaultTargetPath)
+                .onChange(async (value) => {
+                    this.plugin.settings.defaultTargetPath = value;
+                    await this.plugin.saveData(this.plugin.settings);
                 }));
     }
 }

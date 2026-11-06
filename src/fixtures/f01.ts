@@ -70,7 +70,7 @@ async function main(): Promise<void> {
     const recipe: LoadedRecipe = { ...parsed.recipe, sourcePath: 'fixture://tag-suggest-test.md' };
     const harness = new HuginnHarness({
         llmClient: new FakeLlmClient(JSON.stringify({ tag: 'index', reason: 'mentions indexing', confidence: 0.7 })),
-        inputGatherer: new ManualInputGatherer(new Map([
+        inputGatherer: new ManualInputGatherer(new Map<string, unknown>([
             ['targetPath', 'notes/gamma.md'],
             ['candidates', { tags: [{ tag: 'index', files: 5, chunks: 12 }] }],
         ])),

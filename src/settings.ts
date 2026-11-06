@@ -10,12 +10,16 @@ export interface HuginnSettings {
     ollamaUrl: string;
     ollamaChatModel: string;
     chatTimeoutMs: number;
+    warmupOnFocus: boolean;
+    defaultTargetPath: string;
 }
 
 export const DEFAULT_SETTINGS: HuginnSettings = {
     ollamaUrl: 'http://localhost:11434',
     ollamaChatModel: 'qwen3.5:4b',
     chatTimeoutMs: 60000,
+    warmupOnFocus: false,
+    defaultTargetPath: 'notes/gamma.md',
 };
 
 export function sanitizeSettings(saved: unknown): HuginnSettings {
@@ -23,10 +27,10 @@ export function sanitizeSettings(saved: unknown): HuginnSettings {
     if (saved === null || typeof saved !== 'object') return out;
     const s = saved as Record<string, unknown>;
 
-    if (typeof s.ollamaUrl === 'string') {
+    if (typeof s.ollamaUrl === 'string' && s.ollamaUrl.length > 0) {
         out.ollamaUrl = s.ollamaUrl.replace(/\/$/, '');
     }
-    if (typeof s.ollamaChatModel === 'string') {
+    if (typeof s.ollamaChatModel === 'string' && s.ollamaChatModel.length > 0) {
         out.ollamaChatModel = s.ollamaChatModel;
     }
     if (typeof s.chatTimeoutMs === 'number' && Number.isFinite(s.chatTimeoutMs) && s.chatTimeoutMs > 0) {
@@ -34,6 +38,12 @@ export function sanitizeSettings(saved: unknown): HuginnSettings {
     } else if (typeof s.chatTimeoutMs === 'string') {
         const n = Number(s.chatTimeoutMs);
         if (Number.isFinite(n) && n > 0) out.chatTimeoutMs = n;
+    }
+    if (typeof s.warmupOnFocus === 'boolean') {
+        out.warmupOnFocus = s.warmupOnFocus;
+    }
+    if (typeof s.defaultTargetPath === 'string') {
+        out.defaultTargetPath = s.defaultTargetPath;
     }
 
     return out;

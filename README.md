@@ -4,7 +4,7 @@ AI assistant plugin for Obsidian — chat and skills. Huginn (Plugin 2) consumes
 
 ## Current status
 
-Plugin skeleton and generic harness modules ported from Muninn. Requires Muninn (Plugin 1) to be installed and enabled.
+Plugin skeleton and generic harness modules ported from Muninn. Requires Muninn `0.2.0-test.15` or later to be installed and enabled.
 
 ## Build
 
@@ -20,6 +20,7 @@ The production bundle is written to `main.js`.
 
 ```bash
 npx tsx src/fixtures/f01.ts
+npx tsx src/fixtures/f02.ts
 ```
 
 ## Vault layout

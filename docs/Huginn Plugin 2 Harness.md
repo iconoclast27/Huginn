@@ -93,7 +93,11 @@ noop
 
 ## Wiring into Obsidian
 
-The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `src/main.ts`. It discovers Muninn via `app.plugins.plugins['muninn'].getMuninnApi()`. A skeleton command, **"Huginn: Run Huginn test recipe"**, loads the first `.md` recipe from `Agents/Huginn/SKILLS/` and logs the `RecipeRunResult` to the Obsidian console.
+The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `src/main.ts`. It discovers Muninn via `app.plugins.plugins['muninn'].getMuninnApi()`, polling until the API door is ready. The command **"Huginn: Run Huginn skill"** opens a modal (`src/ui/recipe-modal.ts`) that lets the user pick a recipe and enter a target note path, then logs the `RecipeRunResult` to the console.
+
+## Model warmup
+
+`HuginnHarness.warmup()` sends a trivial `/api/chat` completion to pull the configured model back into memory. It is triggered automatically on initialization if the **Warm up chat model on load** setting is enabled.
 
 ## What is owed
 
@@ -101,5 +105,5 @@ The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `sr
 - Ground-truth validation against vault files and frontmatter.
 - ✅ A real `LlmClient` adapter — `OllamaChatClient` in `src/llm/client.ts`.
 - ✅ First skill end-to-end — tag assignment recipe.
-- Obsidian command to run a chosen recipe by name with a user-supplied target path.
+- ✅ Obsidian command to run a chosen recipe with a user-supplied target path.
 - Human approval UI.
