@@ -73,6 +73,8 @@
 - [ ] Console shows `[Huginn] running recipe: tag-assignment target: <path>`.
 - [ ] `schemaValid: true` and `schemaErrors: []`.
 - [ ] `parsedOutput.json` contains `tag`, `reason`, and `confidence` fields.
+- [ ] `groundTruthValid: true` when the proposed tag is **not** already in the target note's frontmatter `tags`.
+- [ ] If the note already has the proposed tag, `groundTruthValid: false` and `groundTruthErrors` explains the conflict.
 - [ ] `applyResult.applied: false`.
 - [ ] `applyResult.message` contains `"Rejected by approval gate."`.
 - [ ] No vault file was modified.
@@ -114,7 +116,7 @@
 ## Known limitations
 
 - v0.1.0-test.3 is read-only: the skill returns a suggestion but never writes to a note.
-- Ground-truth validation is wired into the result shape but always passes in this build.
+- Ground-truth validation currently checks only whether the proposed tag is already present in the target note's frontmatter `tags`.
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
 
 ## What to capture when reporting results

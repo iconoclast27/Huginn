@@ -8,7 +8,7 @@
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
     "typecheck": "tsc --noEmit",
-    "fixtures": "tsx src/fixtures/f01.ts && tsx src/fixtures/f02.ts"
+    "fixtures": "tsx src/fixtures/f01.ts && tsx src/fixtures/f02.ts && tsx src/fixtures/f03.ts"
   },
   "devDependencies": {
     "@types/node": "latest",

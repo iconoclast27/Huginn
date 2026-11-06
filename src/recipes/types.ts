@@ -83,7 +83,7 @@ export interface RecipeValidationRule {
     /** Ground-truth source. Currently only 'vault-file' is supported. */
     source: 'vault-file';
     /** What to check against disk. */
-    check: 'exists' | 'not-exists' | 'matches-frontmatter';
+    check: 'exists' | 'not-exists' | 'matches-frontmatter' | 'not-in-frontmatter';
     /** Optional parameters for the check. */
     params?: Record<string, unknown>;
 }

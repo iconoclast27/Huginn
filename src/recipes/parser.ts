@@ -217,11 +217,21 @@ function parseValidationSection(text: string | undefined, errors: string[]): Rec
             errors.push(`Unsupported validation source '${source}' for ${path}`);
             continue;
         }
-        if (!['exists', 'not-exists', 'matches-frontmatter'].includes(check)) {
+        if (!['exists', 'not-exists', 'matches-frontmatter', 'not-in-frontmatter'].includes(check)) {
             errors.push(`Unsupported validation check '${check}' for ${path}`);
             continue;
         }
-        rules.push({ path, source, check, params: {} });
+        const paramsText = extractYamlField(entry, 'params');
+        let params: Record<string, unknown> = {};
+        if (paramsText) {
+            try {
+                params = JSON.parse(paramsText) as Record<string, unknown>;
+            } catch (e) {
+                errors.push(`Invalid validation params for ${path}: ${(e as Error).message}`);
+                continue;
+            }
+        }
+        rules.push({ path, source, check, params });
     }
     return rules;
 }

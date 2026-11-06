@@ -20,6 +20,7 @@ import { validateJson } from './validator.ts';
 import { computeDiff } from './diff.ts';
 import type { ApplyRegistry } from './apply.ts';
 import type { LlmClient } from '../llm/client.ts';
+import type { GroundTruthValidator } from './ground-truth.ts';
 
 export interface InputGatherer {
     gather(recipe: LoadedRecipe, params?: Record<string, unknown>): Promise<GatheredInput[]>;
@@ -35,6 +36,7 @@ export interface HarnessOptions {
     inputGatherer: InputGatherer;
     approvalGate: ApprovalGate;
     applyRegistry: ApplyRegistry;
+    groundTruthValidator?: GroundTruthValidator;
 }
 
 export class HuginnHarness {
@@ -75,6 +77,12 @@ export class HuginnHarness {
                 const schemaResult = validateJson(parsedOutput.json, recipe.outputSchema);
                 schemaValid = schemaResult.ok;
                 schemaErrors.push(...schemaResult.errors);
+
+                if (schemaValid && this.opts.groundTruthValidator) {
+                    const gtResult = await this.opts.groundTruthValidator.validate(recipe, inputs, parsedOutput.json);
+                    groundTruthValid = gtResult.ok;
+                    groundTruthErrors.push(...gtResult.errors);
+                }
             }
         }
 

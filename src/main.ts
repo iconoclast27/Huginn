@@ -13,6 +13,8 @@ import { OllamaChatClient } from './llm/client.ts';
 import { HuginnHarness, StaticApprovalGate } from './harness/harness.ts';
 import { MuninnApiInputGatherer } from './harness/gather.ts';
 import { createDefaultApplyRegistry } from './harness/apply.ts';
+import { VaultGroundTruthValidator } from './harness/ground-truth.ts';
+import { ObsidianVaultReader } from './harness/obsidian-vault.ts';
 import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
 import { loadRecipes } from './recipes/loader.ts';
 import type { LoadedRecipe } from './recipes/types.ts';
@@ -70,6 +72,7 @@ export default class HuginnPlugin extends Plugin {
                     inputGatherer: new MuninnApiInputGatherer({ api }),
                     approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
                     applyRegistry: createDefaultApplyRegistry(),
+                    groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
                 });
                 // eslint-disable-next-line no-console
                 console.log('[Huginn] harness initialized against Muninn API');
@@ -146,6 +149,7 @@ export default class HuginnPlugin extends Plugin {
                 inputGatherer: new MuninnApiInputGatherer({ api }),
                 approvalGate: new StaticApprovalGate(false),
                 applyRegistry: createDefaultApplyRegistry(),
+                groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
             });
         }
         const source = new ObsidianRecipeSource(this.app.vault, RECIPE_DIR);

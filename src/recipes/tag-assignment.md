@@ -66,4 +66,5 @@ suggest-tags
 # Validation
 - path: /tag
   source: vault-file
-  check: matches-frontmatter
+  check: not-in-frontmatter
+  params: {"key":"tags"}

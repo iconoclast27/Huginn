@@ -48,7 +48,8 @@ noop
 # Validation
 - path: /tag
   source: vault-file
-  check: matches-frontmatter
+  check: not-in-frontmatter
+  params: {"key":"tags"}
 ```
 
 ### Field reference
@@ -61,7 +62,7 @@ noop
 | `Instructions` | Prompt body with `{{key}}` placeholders substituted by the harness |
 | `Output Contract` | JSON Schema object constraining the model's response |
 | `Apply Method` | Name of a harness-registered apply routine. Ships with `noop` and read-only `suggest-tags`. |
-| `Validation` | Ground-truth checks against vault state (parser accepts `vault-file` rules; execution deferred) |
+| `Validation` | Ground-truth checks against vault state via `VaultGroundTruthValidator` (`vault-file` source) |
 
 ## Harness flow
 
@@ -70,9 +71,10 @@ noop
 3. **Render** — `renderRecipe()` replaces `{{key}}` placeholders and appends the JSON output contract.
 4. **Complete** — `LlmClient.complete(prompt)` returns raw text.
 5. **Parse + schema validate** — output must be valid JSON and match the recipe's output schema. Violations are returned as typed `ValidationError`s.
-6. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
-7. **Approve** — `ApprovalGate` returns `true`, `false`, or `null`. Write-class recipes are deferred; the skeleton defaults to reject.
-8. **Apply** — the routine named by `Apply Method` runs only after approval. The model cannot invoke routines directly.
+6. **Ground-truth validate** — `VaultGroundTruthValidator` checks the output against the actual vault file (e.g., the proposed tag must not already be in the note's frontmatter `tags`).
+7. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
+8. **Approve** — `ApprovalGate` returns `true`, `false`, or `null`. Write-class recipes are deferred; the skeleton defaults to reject.
+9. **Apply** — the routine named by `Apply Method` runs only after approval. The model cannot invoke routines directly.
 
 ## Source modules
 
@@ -89,7 +91,11 @@ noop
 | `src/llm/client.ts` | `LlmClient` interface + `OllamaChatClient` with response-body logging |
 | `src/harness/harness.ts` | `HuginnHarness` orchestrator |
 | `src/harness/gather.ts` | `MuninnApiInputGatherer` |
+| `src/harness/ground-truth.ts` | `VaultGroundTruthValidator` + fake-friendly `VaultReader` interface |
+| `src/harness/obsidian-vault.ts` | `ObsidianVaultReader` backed by Obsidian's metadata cache |
 | `src/fixtures/f01.ts` | Fixture policing the harness end-to-end with a fake LLM |
+| `src/fixtures/f02.ts` | Fixture policing Huginn settings sanitization |
+| `src/fixtures/f03.ts` | Fixture policing ground-truth validation against a fake vault |
 
 ## Wiring into Obsidian
 
@@ -102,7 +108,7 @@ The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `sr
 ## What is owed
 
 - ✅ Real input gatherers that call `MuninnApi.searchText`, `searchSemantic`, `relatedChunks`, and `tagVocabulary` — `MuninnApiInputGatherer` in `src/harness/gather.ts`.
-- Ground-truth validation against vault files and frontmatter.
+- ✅ Ground-truth validation against vault files and frontmatter — `VaultGroundTruthValidator` in `src/harness/ground-truth.ts`.
 - ✅ A real `LlmClient` adapter — `OllamaChatClient` in `src/llm/client.ts`.
 - ✅ First skill end-to-end — tag assignment recipe.
 - ✅ Obsidian command to run a chosen recipe with a user-supplied target path.
