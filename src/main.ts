@@ -144,7 +144,6 @@ export default class HuginnPlugin extends Plugin {
                 llmClient: new OllamaChatClient({
                     baseUrl: this.settings.ollamaUrl,
                     model: this.settings.ollamaChatModel,
-                    systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
                     timeoutMs: this.settings.chatTimeoutMs,
                 }),
                 inputGatherer: new MuninnApiInputGatherer({ api, app: this.app }),

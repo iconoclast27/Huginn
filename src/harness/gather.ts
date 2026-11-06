@@ -8,14 +8,19 @@
 // path the recipe names.
 // =============================================================================
 
-import { App, TFile } from 'obsidian';
+import type { App, TFile } from 'obsidian';
 import type { MuninnApi, TagInfo, Hit, ChunkRef } from '../muninn-api.ts';
 import type { LoadedRecipe, GatheredInput, RecipeInput } from '../recipes/types.ts';
 import type { InputGatherer } from './harness.ts';
 
+export interface MuninnVaultLike {
+    getAbstractFileByPath(path: string): unknown;
+    cachedRead(file: unknown): Promise<string>;
+}
+
 export interface MuninnGathererOptions {
     api: MuninnApi;
-    app: App;
+    app: { vault: MuninnVaultLike };
     /** Fallback value for `targetPath` if not provided in params. */
     defaultTargetPath?: string;
 }
@@ -39,7 +44,7 @@ export class MuninnApiInputGatherer implements InputGatherer {
             case 'recipe-param':
                 return params[input.key] ?? this.opts.defaultTargetPath ?? null;
             case 'content': {
-                const path = String(params[input.key] ?? this.opts.defaultTargetPath ?? '');
+                const path = String(resolved.targetPath ?? params.targetPath ?? this.opts.defaultTargetPath ?? '');
                 return this.gatherContent(path);
             }
             case 'vocabulary':
@@ -76,13 +81,17 @@ export class MuninnApiInputGatherer implements InputGatherer {
         return this.opts.api.relatedChunks(path, 10);
     }
 
-    private async gatherContent(path: string): Promise<{ content: string } | null> {
+    private async gatherContent(path: string): Promise<string | null> {
         if (!path || path.length === 0) return null;
         const file = this.opts.app.vault.getAbstractFileByPath(path);
-        if (!file || !(file instanceof TFile)) {
+        if (!file || !isTFileLike(file)) {
             return null;
         }
-        const content = await this.opts.app.vault.cachedRead(file);
-        return { content };
+        return this.opts.app.vault.cachedRead(file);
     }
+}
+
+/** Duck-type check so fixtures can supply a fake TFile without importing obsidian at runtime. */
+function isTFileLike(file: unknown): file is { path: string; extension: string } {
+    return typeof file === 'object' && file !== null && 'path' in file && 'extension' in file;
 }

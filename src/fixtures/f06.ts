@@ -41,7 +41,7 @@ async function main(): Promise<void> {
             llmClient: new FakeLlmClient(raw),
             inputGatherer: new ManualInputGatherer(new Map<string, unknown>([
                 ['targetPath', 'notes/Home.md'],
-                ['content', { content: 'This is the home note. It links to alpha and beta.' }],
+                ['content', 'This is the home note. It links to alpha and beta.'],
                 ['vocabulary', { tags: [{ tag: 'index', files: 1, chunks: 1 }] }],
                 ['relatedChunks', { neighbors: [] }],
                 ['relatedTextHits', { hits: [] }],
