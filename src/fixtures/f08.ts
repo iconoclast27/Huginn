@@ -76,12 +76,14 @@ async function main(): Promise<void> {
         });
         const result = await harness.run(titleRecipe, { targetPath: 'notes/TitleMe.md' }, {});
         const content = files['notes/TitleMe.md'];
-        if (!result.applyResult?.applied || !content.startsWith('# Better Title\n')) {
+        const hasHeading = content.includes('# Better Title\n');
+        const hasFrontmatterTitle = content.includes('---\ntitle: Better Title\n') || content.includes('\ntitle: Better Title\n');
+        if (!result.applyResult?.applied || !hasHeading || !hasFrontmatterTitle) {
             failures++;
-            console.log('[F08] RED: title-suggestion did not set first heading');
+            console.log('[F08] RED: title-suggestion did not set heading and frontmatter title');
             console.log('[F08]   content:', JSON.stringify(content));
         } else {
-            console.log('[F08] PASS: title-suggestion set first heading');
+            console.log('[F08] PASS: title-suggestion set heading and frontmatter title');
         }
     } else {
         failures++;

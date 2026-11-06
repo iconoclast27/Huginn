@@ -101,21 +101,27 @@ export class HuginnHarness {
 
         const targetPath = findTargetPath(inputs);
         if (schemaValid && groundTruthValid) {
-            approved = await this.opts.approvalGate.approve({
-                diffText: JSON.stringify(diff),
-                output: afterState ?? {},
-                recipeName: recipe.metadata.name,
-                targetPath,
-            });
-            if (approved === true) {
-                const routine = this.opts.applyRegistry.get(recipe.applyMethod);
-                if (!routine) {
-                    applyResult = { applied: false, message: `Unknown apply method: ${recipe.applyMethod}` };
-                } else {
-                    applyResult = await routine({ recipe, output: afterState ?? {}, inputs });
+            if (recipe.applyMethod === 'noop') {
+                // Read-only skills do not require approval and are not applied.
+                approved = null;
+                applyResult = null;
+            } else {
+                approved = await this.opts.approvalGate.approve({
+                    diffText: JSON.stringify(diff),
+                    output: afterState ?? {},
+                    recipeName: recipe.metadata.name,
+                    targetPath,
+                });
+                if (approved === true) {
+                    const routine = this.opts.applyRegistry.get(recipe.applyMethod);
+                    if (!routine) {
+                        applyResult = { applied: false, message: `Unknown apply method: ${recipe.applyMethod}` };
+                    } else {
+                        applyResult = await routine({ recipe, output: afterState ?? {}, inputs });
+                    }
+                } else if (approved === false) {
+                    applyResult = { applied: false, message: 'Rejected by approval gate.' };
                 }
-            } else if (approved === false) {
-                applyResult = { applied: false, message: 'Rejected by approval gate.' };
             }
         }
 

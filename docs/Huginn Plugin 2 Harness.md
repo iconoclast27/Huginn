@@ -61,7 +61,7 @@ noop
 | `Inputs` | List of `{ key, description, source }`. Source may be `query`, `path`, `vocabulary`, `constant`, or `recipe-param`. |
 | `Instructions` | Prompt body with `{{key}}` placeholders substituted by the harness |
 | `Output Contract` | JSON Schema object constraining the model's response |
-| `Apply Method` | Name of a harness-registered apply routine. Ships with `noop` and read-only `suggest-tags`. |
+| `Apply Method` | Name of a harness-registered apply routine. Ships with `noop` for read-only skills and `suggest-tags`, `suggest-title`, `suggest-links` for write-class skills. |
 | `Validation` | Ground-truth checks against vault state via `VaultGroundTruthValidator` (`vault-file` source) |
 
 ## Harness flow
@@ -73,8 +73,8 @@ noop
 5. **Parse + schema validate** — output must be valid JSON and match the recipe's output schema. Violations are returned as typed `ValidationError`s.
 6. **Ground-truth validate** — `VaultGroundTruthValidator` checks the output against the actual vault file (e.g., the proposed tag must not already be in the note's frontmatter `tags`).
 7. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
-8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**.
-9. **Apply** — the routine named by `Apply Method` runs only after approval. The model cannot invoke routines directly.
+8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**. Recipes with `Apply Method: noop` (read-only skills) skip this step.
+9. **Apply** — the routine named by `Apply Method` runs only after approval. The model cannot invoke routines directly. Read-only skills do not run an apply routine.
 
 ## Source modules
 
@@ -103,6 +103,13 @@ noop
 | `src/fixtures/f02.ts` | Fixture policing Huginn settings sanitization |
 | `src/fixtures/f03.ts` | Fixture policing ground-truth validation against a fake vault |
 | `src/fixtures/f04.ts` | Fixture policing the approval request shape |
+| `src/fixtures/f05.ts` | Recipe catalog parses |
+| `src/fixtures/f06.ts` | New skill end-to-end with fake LLM |
+| `src/fixtures/f07.ts` | `MuninnApiInputGatherer` content source end-to-end |
+| `src/fixtures/f08.ts` | Write-class suggest routines mutate the note body |
+| `src/fixtures/f09.ts` | Target path `.md` normalization |
+| `src/fixtures/f10.ts` | Chat-state sanitization and round-trip |
+| `src/fixtures/f11.ts` | `ChatSkillDispatcher` intent parsing |
 
 ## Wiring into Obsidian
 
@@ -126,7 +133,8 @@ The chat path is intentionally minimal in this first cut. It is not a recipe; it
 3. **UI.** `HuginnChatView` renders user/assistant bubbles, keeps the active note path in a header, provides a textarea where **Enter** sends and **Shift+Enter** inserts a newline, and shows a loading state while waiting for Ollama. A **Refresh context** button re-reads the active note and starts a new session.
 4. **Persistence across sidebar close/reopen.** The view implements `getState`/`setState` so Obsidian restores the message history and active note path when the sidebar is closed and reopened. The note body itself is not persisted; re-opening re-reads the current active note if the user clicks **Refresh context**.
 5. **Skill dispatch.** When the user sends a message, `ChatSkillDispatcher` asks the model to pick a recipe and a target note path. If a valid recipe is selected, `HuginnHarness.run()` executes it and the result is rendered in the chat. If no recipe matches, the message falls back to a plain chat completion.
-6. **No RAG yet.** The chat does not inject vault-wide search results; skill dispatch uses the recipe's own input gatherer for vocabulary/related content.
+6. **Read-only skills inline.** Recipes with `Apply Method: noop` skip the approval gate. Their structured output is rendered as a friendly inline message: `summary-generation` shows the summary paragraph, `task-extraction` shows a numbered task list.
+7. **No RAG yet.** The chat does not inject vault-wide search results; skill dispatch uses the recipe's own input gatherer for vocabulary/related content.
 
 ## What is owed
 

@@ -12,7 +12,7 @@ import { ChatController, type ChatSession } from '../chat/chat.ts';
 import { ChatSkillDispatcher, type DispatchResult, type DispatchIntent } from '../chat/dispatch.ts';
 import { emptyChatState, sanitizeChatState, type HuginnChatState } from './chat-state.ts';
 import type { HuginnHarness } from '../harness/harness.ts';
-import type { LoadedRecipe } from '../recipes/types.ts';
+import type { LoadedRecipe, RecipeRunResult } from '../recipes/types.ts';
 import { normalizeNotePath } from './path-utils.ts';
 
 export const HUGINN_CHAT_VIEW_TYPE = 'huginn-chat';
@@ -212,15 +212,35 @@ export class HuginnChatView extends ItemView {
             return;
         }
 
+        if (recipe.applyMethod === 'noop') {
+            this.renderReadOnlyResult(recipe, result);
+            return;
+        }
+
         if (result.applyResult) {
             this.renderMessage('assistant', result.applyResult.message);
         } else if (result.approved === false) {
             this.renderMessage('assistant', 'Skill suggestion was rejected.');
         } else {
-            // Read-only skill or approval gate returned null (tests). Render
-            // the structured output as a compact JSON blob.
+            // Approval gate returned null (tests). Render the structured output
+            // as a compact JSON blob.
             this.renderMessage('assistant', '```json\n' + JSON.stringify(result.parsedOutput.json, null, 2) + '\n```');
         }
+    }
+
+    private renderReadOnlyResult(recipe: LoadedRecipe, result: RecipeRunResult): void {
+        const json = result.parsedOutput.json as Record<string, unknown> | undefined;
+        if (recipe.metadata.name === 'summary-generation' && typeof json?.summary === 'string') {
+            this.renderMessage('assistant', json.summary);
+            return;
+        }
+        if (recipe.metadata.name === 'task-extraction' && Array.isArray(json?.tasks)) {
+            const tasks = json.tasks as string[];
+            const lines = tasks.length === 0 ? ['No actionable tasks found.'] : tasks.map((t, i) => `${i + 1}. ${t}`);
+            this.renderMessage('assistant', lines.join('\n'));
+            return;
+        }
+        this.renderMessage('assistant', '```json\n' + JSON.stringify(json, null, 2) + '\n```');
     }
 
     private renderMessage(role: 'user' | 'assistant', content: string): void {

@@ -39,10 +39,16 @@ export interface ApplyRegistryOptions {
     readFile(file: unknown): Promise<string>;
     /** Write the full text of a resolved file. */
     writeFile(file: unknown, content: string): Promise<void>;
+    /**
+     * Optional Obsidian-compatible frontmatter mutator. When provided, tag writes
+     * use this instead of manual YAML string manipulation so that frontmatter is
+     * created or updated through the host's normal mechanism.
+     */
+    processFrontMatter?(file: unknown, mutator: (frontmatter: Record<string, unknown>) => void): Promise<void>;
 }
 
 export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyRegistry {
-    const { resolveFile, readFile, writeFile } = opts;
+    const { resolveFile, readFile, writeFile, processFrontMatter } = opts;
     const registry = createApplyRegistry();
 
     registry.register('noop', async (ctx): Promise<ApplyResult> => {
@@ -66,9 +72,17 @@ export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyReg
         }
 
         try {
-            const content = await readFile(file);
-            const newContent = addTagToFrontmatter(content, tag);
-            await writeFile(file, newContent);
+            if (processFrontMatter) {
+                await processFrontMatter(file, (frontmatter) => {
+                    const tags = parseTags(frontmatter.tags);
+                    if (!tags.includes(tag)) tags.push(tag);
+                    frontmatter.tags = formatTags(tags);
+                });
+            } else {
+                const content = await readFile(file);
+                const newContent = addTagToFrontmatter(content, tag);
+                await writeFile(file, newContent);
+            }
             return {
                 applied: true,
                 message: `Added tag '${tag}' to frontmatter of ${targetPath}.`,
@@ -165,6 +179,7 @@ function addTagToFrontmatter(content: string, tag: string): string {
 
 function setFirstHeading(content: string, title: string): string {
     const { frontmatter, body } = splitFrontmatter(content);
+    frontmatter.title = title;
     const trimmed = body.trimStart();
     if (trimmed.startsWith('# ')) {
         const rest = trimmed.slice(trimmed.indexOf('\n') + 1);
@@ -189,7 +204,8 @@ interface SplitFrontmatter {
     body: string;
 }
 
-function splitFrontmatter(content: string): SplitFrontmatter {
+/** Split content into frontmatter object and body. Exported for fixture fakes. */
+export function splitFrontmatter(content: string): SplitFrontmatter {
     if (!content.startsWith('---\n')) {
         return { frontmatter: {}, body: content };
     }
@@ -202,7 +218,8 @@ function splitFrontmatter(content: string): SplitFrontmatter {
     return { frontmatter: parseSimpleYaml(yaml), body };
 }
 
-function joinFrontmatter(frontmatter: Record<string, unknown>, body: string): string {
+/** Join frontmatter object and body back into note text. Exported for fixture fakes. */
+export function joinFrontmatter(frontmatter: Record<string, unknown>, body: string): string {
     const keys = Object.keys(frontmatter);
     if (keys.length === 0) {
         return body;

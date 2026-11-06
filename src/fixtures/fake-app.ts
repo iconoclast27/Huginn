@@ -6,6 +6,8 @@
 // apply registry without loading the obsidian package at runtime.
 // =============================================================================
 
+import { splitFrontmatter, joinFrontmatter } from '../harness/apply.ts';
+
 export interface FakeFile {
     path: string;
     name: string;
@@ -17,6 +19,7 @@ export interface FakeVault {
     read(file: FakeFile): Promise<string>;
     modify(file: FakeFile, content: string): Promise<void>;
     cachedRead(file: FakeFile): Promise<string>;
+    processFrontMatter(file: FakeFile, fn: (frontmatter: Record<string, unknown>) => void): Promise<void>;
 }
 
 export interface FakeApp {
@@ -43,6 +46,12 @@ export function createFakeApp(files: Record<string, string>): FakeApp {
             async cachedRead(file: FakeFile): Promise<string> {
                 return files[file.path] ?? '';
             },
+            async processFrontMatter(file: FakeFile, fn: (frontmatter: Record<string, unknown>) => void): Promise<void> {
+                const content = files[file.path] ?? '';
+                const { frontmatter, body } = splitFrontmatter(content);
+                fn(frontmatter);
+                files[file.path] = joinFrontmatter(frontmatter, body);
+            },
         },
     };
 }
@@ -51,6 +60,7 @@ export function createApplyOptionsForFakeApp(files: Record<string, string>): {
     resolveFile: (path: string) => unknown;
     readFile: (file: unknown) => Promise<string>;
     writeFile: (file: unknown, content: string) => Promise<void>;
+    processFrontMatter(file: unknown, fn: (frontmatter: Record<string, unknown>) => void): Promise<void>;
 } {
     const app = createFakeApp(files);
     return {
@@ -62,6 +72,9 @@ export function createApplyOptionsForFakeApp(files: Record<string, string>): {
         },
         async writeFile(file: unknown, content: string): Promise<void> {
             app.vault.modify(file as FakeFile, content);
+        },
+        async processFrontMatter(file: unknown, fn: (frontmatter: Record<string, unknown>) => void): Promise<void> {
+            return app.vault.processFrontMatter(file as FakeFile, fn);
         },
     };
 }

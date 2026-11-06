@@ -1,4 +1,4 @@
-# Huginn Smoke Test Scenario v0.1.0-test.9
+# Huginn Smoke Test Scenario v0.1.0-test.10
 
 ## Environment
 
@@ -7,13 +7,13 @@
 - A chat-capable model pulled, e.g. `qwen3.5:4b`.
 - Muninn `0.2.0-test.15` (or later) installed and enabled.
 - Vault already indexed by Muninn (run **Muninn: Force reindex vault** if unsure).
-- Huginn `0.1.0-test.9` (or later) installed via BRAT.
+- Huginn `0.1.0-test.10` (or later) installed via BRAT.
 
 ## Install Huginn via BRAT
 
 1. Install the BRAT plugin in Obsidian if it is not already installed.
 2. Open **Obsidian Settings → Community Plugins → BRAT**.
-3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.9`.
+3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.10`.
 4. Enable the **Huginn** plugin in Obsidian settings.
 5. Reload Obsidian if prompted.
 6. Wait for Muninn's initial reindex to complete before testing Huginn.
@@ -77,7 +77,7 @@
 - [ ] If the note already has the proposed tag, `groundTruthValid: false` and `groundTruthErrors` explains the conflict.
 - [ ] When you click **Reject** in the approval modal, `applyResult.applied: false` and `applyResult.message` contains `"Rejected by approval gate."`.
 - [ ] When you click **Approve** in the approval modal, `applyResult.applied: true` and `applyResult.message` indicates the file was modified.
-- [ ] The target note's frontmatter now includes the proposed tag under `tags`. If the note had no frontmatter, a new frontmatter block was created.
+- [ ] The target note's frontmatter now includes the proposed tag under `tags`. If the note had no frontmatter, a new frontmatter block is created through Obsidian's normal frontmatter mechanism.
 
 ## Scenario C: Missing Muninn produces a user-facing notice
 
@@ -132,19 +132,23 @@
 ### Expected results
 - [ ] The **Huginn Chat** sidebar view opens and shows the active note path in the header.
 - [ ] The input area accepts text; **Shift+Enter** inserts a newline while **Enter** sends.
+- [ ] Chat message text can be selected and copied with the normal mouse/keyboard selection.
 - [ ] Console shows a `POST /api/chat` request with a `system` message containing the active note body.
 - [ ] A `user` bubble appears with the typed question.
 - [ ] An `assistant` bubble appears with a model response.
 - [ ] Closing and reopening the sidebar restores the previous message history.
 - [ ] Clicking **Refresh context** re-reads the active note and starts a new system-message session.
 - [ ] Typing a skill request (e.g. `tag this note`) triggers a second `POST /api/chat` dispatch call, then runs the matching skill and shows its result in the chat.
+- [ ] Read-only skills (**summary-generation**, **task-extraction**) return their result directly in the chat without opening the approval modal.
 - [ ] Write-class skills (tag, title, links) still open the existing approval modal; approving applies the change and the chat shows the apply result.
+- [ ] **title-suggestion** sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter if necessary.
+- [ ] **tag-assignment** adds the proposed tag to frontmatter `tags`, creating frontmatter through Obsidian's normal frontmatter mechanism if necessary.
 
 ## Known limitations
 
-- v0.1.0-test.8 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **summary-generation** and **task-extraction** remain read-only.
+- v0.1.0-test.10 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **summary-generation** and **task-extraction** are read-only and return inline in chat.
 - Ground-truth validation currently checks only whether the proposed tag is already present in the target note's frontmatter `tags`.
-- Title suggestion sets or replaces the first `# ` heading in the note body; it does not rename the file.
+- Title suggestion sets or replaces the first `# ` heading in the note body and also sets the `title` frontmatter property; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
 - Chat uses **active-note context only** for plain chat responses. Skill dispatch sends a separate dispatch request to decide which recipe to run; the recipe itself then gathers its own inputs.
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.

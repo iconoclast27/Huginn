@@ -18,14 +18,15 @@ import { createApplyOptionsForFakeApp } from './fake-app.ts';
 
 interface TestCase {
     raw: string;
-    expectApplied: boolean;
+    expectApproved: boolean | null;
+    expectApplied: boolean | null;
 }
 
 const TEST_CASES: Record<string, TestCase> = {
-    'title-suggestion': { raw: JSON.stringify({ title: 'Better Home Note', reason: 'more descriptive', confidence: 0.8 }), expectApplied: true },
-    'link-suggestion': { raw: JSON.stringify({ links: ['notes/alpha.md', 'notes/beta.md'], confidence: 0.7 }), expectApplied: true },
-    'summary-generation': { raw: JSON.stringify({ summary: 'A concise overview of the home note.', confidence: 0.9 }), expectApplied: false },
-    'task-extraction': { raw: JSON.stringify({ tasks: ['Review home note structure', 'Add missing links'], confidence: 0.8 }), expectApplied: false },
+    'title-suggestion': { raw: JSON.stringify({ title: 'Better Home Note', reason: 'more descriptive', confidence: 0.8 }), expectApproved: true, expectApplied: true },
+    'link-suggestion': { raw: JSON.stringify({ links: ['notes/alpha.md', 'notes/beta.md'], confidence: 0.7 }), expectApproved: true, expectApplied: true },
+    'summary-generation': { raw: JSON.stringify({ summary: 'A concise overview of the home note.', confidence: 0.9 }), expectApproved: null, expectApplied: null },
+    'task-extraction': { raw: JSON.stringify({ tasks: ['Review home note structure', 'Add missing links'], confidence: 0.8 }), expectApproved: null, expectApplied: null },
 };
 
 async function main(): Promise<void> {
@@ -62,9 +63,16 @@ async function main(): Promise<void> {
         if (!runResult.schemaValid) {
             failures++;
             console.log(`[F06] RED: ${name} schema invalid:`, JSON.stringify(runResult.schemaErrors));
-        } else if (runResult.approved !== true) {
+        } else if (runResult.approved !== testCase.expectApproved) {
             failures++;
-            console.log(`[F06] RED: ${name} expected approved true, got`, runResult.approved);
+            console.log(`[F06] RED: ${name} expected approved ${JSON.stringify(testCase.expectApproved)}, got`, runResult.approved);
+        } else if (testCase.expectApplied === null) {
+            if (runResult.applyResult !== null) {
+                failures++;
+                console.log(`[F06] RED: ${name} expected no applyResult, got`, runResult.applyResult);
+            } else {
+                console.log(`[F06] PASS: ${name} ran end-to-end`);
+            }
         } else if (runResult.applyResult === null || runResult.applyResult.applied !== testCase.expectApplied) {
             failures++;
             console.log(`[F06] RED: ${name} expected applyResult.applied ${testCase.expectApplied}, got`, runResult.applyResult);

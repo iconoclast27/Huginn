@@ -238,7 +238,7 @@ export default class HuginnPlugin extends Plugin {
     }
 }
 
-function createObsidianApplyOptions(app: App): { resolveFile: (path: string) => unknown; readFile: (file: unknown) => Promise<string>; writeFile: (file: unknown, content: string) => Promise<void>; } {
+function createObsidianApplyOptions(app: App): { resolveFile: (path: string) => unknown; readFile: (file: unknown) => Promise<string>; writeFile: (file: unknown, content: string) => Promise<void>; processFrontMatter: (file: unknown, fn: (frontmatter: Record<string, unknown>) => void) => Promise<void>; } {
     return {
         resolveFile(path: string): unknown {
             const file = app.vault.getAbstractFileByPath(path);
@@ -251,6 +251,10 @@ function createObsidianApplyOptions(app: App): { resolveFile: (path: string) => 
         async writeFile(file: unknown, content: string): Promise<void> {
             if (!(file instanceof TFile)) throw new Error('Invalid file');
             await app.vault.modify(file, content);
+        },
+        async processFrontMatter(file: unknown, fn: (frontmatter: Record<string, unknown>) => void): Promise<void> {
+            if (!(file instanceof TFile)) throw new Error('Invalid file');
+            await app.fileManager.processFrontMatter(file, fn);
         },
     };
 }
