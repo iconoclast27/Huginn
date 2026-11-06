@@ -1,0 +1,76 @@
+/* Huginn — sidebar chat view styles */
+
+.huginn-chat-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.huginn-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 8px;
+}
+
+.huginn-chat-context {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.huginn-chat-context small {
+    opacity: 0.8;
+}
+
+.huginn-chat-refresh {
+    flex-shrink: 0;
+    font-size: 0.8em;
+}
+
+.huginn-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 8px;
+    min-height: 120px;
+}
+
+.huginn-chat-message {
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.huginn-chat-message-user {
+    background-color: var(--background-secondary);
+}
+
+.huginn-chat-message-assistant {
+    background-color: var(--background-primary-alt);
+}
+
+.huginn-chat-input-container {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.huginn-chat-input {
+    flex: 1;
+    min-height: 60px;
+    resize: vertical;
+}
+
+.huginn-chat-send {
+    flex-shrink: 0;
+}

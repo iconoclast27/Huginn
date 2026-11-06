@@ -7,7 +7,7 @@
 // index and exposes it through getMuninnApi().
 // =============================================================================
 
-import { Plugin, Setting, PluginSettingTab, Notice, TFile, type App } from 'obsidian';
+import { Plugin, Setting, PluginSettingTab, Notice, TFile, WorkspaceLeaf, type App } from 'obsidian';
 import { DEFAULT_SETTINGS, sanitizeSettings, type HuginnSettings } from './settings.ts';
 import { OllamaChatClient } from './llm/client.ts';
 import { HuginnHarness } from './harness/harness.ts';
@@ -22,7 +22,7 @@ import type { LoadedRecipe } from './recipes/types.ts';
 import type { MuninnApi } from './muninn-api.ts';
 import { RecipeChooserModal } from './ui/recipe-modal.ts';
 import { ChatController } from './chat/chat.ts';
-import { ChatModal } from './ui/chat-modal.ts';
+import { HuginnChatView, HUGINN_CHAT_VIEW_TYPE } from './ui/chat-view.ts';
 
 const MUNINN_PLUGIN_ID = 'muninn';
 const RECIPE_DIR = 'Agents/Huginn/SKILLS';
@@ -65,6 +65,15 @@ export default class HuginnPlugin extends Plugin {
             callback: () => {
                 void this.openChat();
             },
+        });
+
+        this.registerView(
+            HUGINN_CHAT_VIEW_TYPE,
+            (leaf) => new HuginnChatView(leaf, this.createChatController()),
+        );
+
+        this.addRibbonIcon('message-square', 'Huginn chat', () => {
+            void this.openChat();
         });
 
         this.app.workspace.onLayoutReady(() => {
@@ -190,12 +199,31 @@ export default class HuginnPlugin extends Plugin {
     }
 
     private openChat(): void {
-        if (this.chatClient === null) {
-            new Notice('Huginn chat is not ready. Is Muninn installed and enabled?');
+        void this.openChatView();
+    }
+
+    private createChatController(): ChatController {
+        // The view factory runs before Muninn may be ready. Create a transient
+        // client if the shared one is not yet available; it will be replaced
+        // by the shared client once the harness initializes.
+        const llmClient = this.chatClient ?? new OllamaChatClient({
+            baseUrl: this.settings.ollamaUrl,
+            model: this.settings.ollamaChatModel,
+            timeoutMs: this.settings.chatTimeoutMs,
+        });
+        return new ChatController({ app: this.app, llmClient });
+    }
+
+    private async openChatView(): Promise<void> {
+        const existing = this.app.workspace.getLeavesOfType(HUGINN_CHAT_VIEW_TYPE)[0] ?? null;
+        if (existing !== null) {
+            this.app.workspace.revealLeaf(existing);
             return;
         }
-        const controller = new ChatController({ app: this.app, llmClient: this.chatClient });
-        new ChatModal(this.app, controller).open();
+        const leaf = this.app.workspace.getRightLeaf(false);
+        if (leaf === null) return;
+        await leaf.setViewState({ type: HUGINN_CHAT_VIEW_TYPE, active: true });
+        this.app.workspace.revealLeaf(leaf);
     }
 }
 

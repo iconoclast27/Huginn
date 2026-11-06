@@ -6,7 +6,7 @@ AI assistant plugin for Obsidian — chat and skills. Huginn (Plugin 2) consumes
 
 Latest test release: `0.1.0-test.8`. Huginn now provides a vault-aware chat interface plus a skill harness with human approval.
 
-- **Chat:** `Huginn: Open Huginn chat` opens a modal that sends the active note body to the configured Ollama chat model as context.
+- **Chat:** `Huginn: Open Huginn chat` opens a sidebar view that sends the active note body to the configured Ollama chat model as context. A message-square ribbon icon is also provided.
 - **Skills:** `Huginn: Run Huginn skill` discovers `.md` recipes in `Agents/Huginn/SKILLS/`, renders them, validates the model's JSON output, shows a diff approval modal, and applies write-class suggestions for tag, title, and link recipes.
 - **Target path normalization:** note paths entered without `.md` are automatically normalized to `.md` before the skill runs.
 
@@ -28,7 +28,7 @@ The production bundle is written to `main.js`.
 npm run fixtures
 ```
 
-Runs F01–F09, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, and `.md` path normalization.
+Runs F01–F10, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, `.md` path normalization, and chat-state sanitization.
 
 ## Commands
 

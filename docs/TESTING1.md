@@ -122,20 +122,21 @@
 
 ### Steps
 1. Open any note in the vault, e.g. `notes/gamma.md`.
-2. Open the Obsidian command palette.
-3. Run **Huginn: Open Huginn chat**.
-4. Wait for the chat modal to appear.
-5. Type a question about the active note, e.g. `Summarize this note in one sentence.`.
-6. Press **Enter** (or click **Send**).
-7. Wait for the model response to appear.
+2. Click the **message-square** Huginn ribbon icon, or open the command palette and run **Huginn: Open Huginn chat**.
+3. Wait for the **Huginn Chat** sidebar view to open (usually in the right sidebar).
+4. Type a question about the active note, e.g. `Summarize this note in one sentence.`.
+5. Press **Enter** (or click **Send**).
+6. Wait for the model response to appear.
+7. Close the sidebar, then reopen it via the ribbon icon or command.
 
 ### Expected results
-- [ ] The chat modal opens and shows the active note path in the header.
+- [ ] The **Huginn Chat** sidebar view opens and shows the active note path in the header.
 - [ ] The input area accepts text; **Shift+Enter** inserts a newline while **Enter** sends.
 - [ ] Console shows a `POST /api/chat` request with a `system` message containing the active note body.
 - [ ] A `user` bubble appears with the typed question.
 - [ ] An `assistant` bubble appears with a model response.
-- [ ] Closing and reopening the chat starts a fresh session.
+- [ ] Closing and reopening the sidebar restores the previous message history.
+- [ ] Clicking **Refresh context** re-reads the active note and starts a new system-message session.
 
 ## Known limitations
 

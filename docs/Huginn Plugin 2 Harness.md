@@ -96,7 +96,8 @@ noop
 | `src/harness/approval-gate.ts` | `ObsidianApprovalGate` that opens `ApprovalModal` |
 | `src/ui/approval-modal.ts` | Modal UI for diff review and approve/reject |
 | `src/chat/chat.ts` | `ChatController`: active-note context, system prompt, message history |
-| `src/ui/chat-modal.ts` | `ChatModal`: bubble UI, input textarea, send handling |
+| `src/ui/chat-view.ts` | `HuginnChatView`: sidebar `ItemView` with bubble UI, input, and state |
+| `src/ui/chat-state.ts` | Serializable chat state + sanitization for view persistence |
 | `src/fixtures/f01.ts` | Fixture policing the harness end-to-end with a fake LLM |
 | `src/fixtures/f02.ts` | Fixture policing Huginn settings sanitization |
 | `src/fixtures/f03.ts` | Fixture policing ground-truth validation against a fake vault |
@@ -109,7 +110,7 @@ The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `sr
 Two commands are registered:
 
 - **"Huginn: Run Huginn skill"** opens a modal (`src/ui/recipe-modal.ts`) that lets the user pick a recipe and enter a target note path, then logs the `RecipeRunResult` to the console.
-- **"Huginn: Open Huginn chat"** opens `ChatModal` with a fresh `ChatController` backed by the same `OllamaChatClient` instance used by the harness.
+- **"Huginn: Open Huginn chat"** opens `HuginnChatView` in the right sidebar with a fresh `ChatController` backed by the same `OllamaChatClient` instance used by the harness. A message-square ribbon icon is also registered.
 
 ## Model warmup
 
@@ -121,8 +122,9 @@ The chat path is intentionally minimal in this first cut. It is not a recipe; it
 
 1. **Context strategy — active note only.** `ChatController.createSession()` reads `app.workspace.getActiveFile()` via `vault.cachedRead()` and injects the note path and body into a `system` message. The model is instructed to answer based on the active note but to fall back to general knowledge if the question is unrelated.
 2. **Message history.** `ChatSession.messages` carries `system`, `user`, and `assistant` messages. `ChatController.sendMessage()` appends the user's message, calls `ChatLlmClient.chat(messages)`, and appends the assistant reply.
-3. **UI.** `ChatModal` renders user/assistant bubbles, keeps the active note path in a header, provides a textarea where **Enter** sends and **Shift+Enter** inserts a newline, and shows a loading state while waiting for Ollama.
-4. **No persistence / no RAG.** Closing the modal discards the session. The chat does not query Muninn's index or pull in linked notes; that is reserved for a later context-strategy increment.
+3. **UI.** `HuginnChatView` renders user/assistant bubbles, keeps the active note path in a header, provides a textarea where **Enter** sends and **Shift+Enter** inserts a newline, and shows a loading state while waiting for Ollama. A **Refresh context** button re-reads the active note and starts a new session.
+4. **Persistence across sidebar close/reopen.** The view implements `getState`/`setState` so Obsidian restores the message history and active note path when the sidebar is closed and reopened. The note body itself is not persisted; re-opening re-reads the current active note if the user clicks **Refresh context**.
+5. **No RAG / no skill dispatch yet.** The chat does not query Muninn's index or pull in linked notes, and it cannot invoke recipes. Those are reserved for later context-strategy increments.
 
 ## What is owed
 
