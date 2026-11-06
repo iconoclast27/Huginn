@@ -10,7 +10,8 @@
 import { Plugin, Setting, PluginSettingTab, Notice } from 'obsidian';
 import { DEFAULT_SETTINGS, sanitizeSettings, type HuginnSettings } from './settings.ts';
 import { OllamaChatClient } from './llm/client.ts';
-import { HuginnHarness, StaticApprovalGate } from './harness/harness.ts';
+import { HuginnHarness } from './harness/harness.ts';
+import { ObsidianApprovalGate } from './harness/approval-gate.ts';
 import { MuninnApiInputGatherer } from './harness/gather.ts';
 import { createDefaultApplyRegistry } from './harness/apply.ts';
 import { VaultGroundTruthValidator } from './harness/ground-truth.ts';
@@ -70,7 +71,7 @@ export default class HuginnPlugin extends Plugin {
                         timeoutMs: this.settings.chatTimeoutMs,
                     }),
                     inputGatherer: new MuninnApiInputGatherer({ api }),
-                    approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
+                    approvalGate: new ObsidianApprovalGate(this.app),
                     applyRegistry: createDefaultApplyRegistry(),
                     groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
                 });
@@ -147,7 +148,7 @@ export default class HuginnPlugin extends Plugin {
                     timeoutMs: this.settings.chatTimeoutMs,
                 }),
                 inputGatherer: new MuninnApiInputGatherer({ api }),
-                approvalGate: new StaticApprovalGate(false),
+                approvalGate: new ObsidianApprovalGate(this.app),
                 applyRegistry: createDefaultApplyRegistry(),
                 groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
             });

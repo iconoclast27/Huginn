@@ -76,7 +76,8 @@
 - [ ] `groundTruthValid: true` when the proposed tag is **not** already in the target note's frontmatter `tags`.
 - [ ] If the note already has the proposed tag, `groundTruthValid: false` and `groundTruthErrors` explains the conflict.
 - [ ] `applyResult.applied: false`.
-- [ ] `applyResult.message` contains `"Rejected by approval gate."`.
+- [ ] When you click **Reject** in the approval modal, `applyResult.message` contains `"Rejected by approval gate."`.
+- [ ] When you click **Approve** in the approval modal, `applyResult.message` indicates the suggestion was approved but write-class apply is still deferred.
 - [ ] No vault file was modified.
 
 ## Scenario C: Missing Muninn produces a user-facing notice
@@ -117,6 +118,7 @@
 
 - v0.1.0-test.3 is read-only: the skill returns a suggestion but never writes to a note.
 - Ground-truth validation currently checks only whether the proposed tag is already present in the target note's frontmatter `tags`.
+- The approval modal appears after schema and ground-truth validation pass; approval does not yet cause a vault write.
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
 
 ## What to capture when reporting results

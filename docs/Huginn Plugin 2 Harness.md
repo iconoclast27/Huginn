@@ -73,7 +73,7 @@ noop
 5. **Parse + schema validate** — output must be valid JSON and match the recipe's output schema. Violations are returned as typed `ValidationError`s.
 6. **Ground-truth validate** — `VaultGroundTruthValidator` checks the output against the actual vault file (e.g., the proposed tag must not already be in the note's frontmatter `tags`).
 7. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
-8. **Approve** — `ApprovalGate` returns `true`, `false`, or `null`. Write-class recipes are deferred; the skeleton defaults to reject.
+8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**. Write-class apply is still deferred even after approval.
 9. **Apply** — the routine named by `Apply Method` runs only after approval. The model cannot invoke routines directly.
 
 ## Source modules
@@ -93,9 +93,12 @@ noop
 | `src/harness/gather.ts` | `MuninnApiInputGatherer` |
 | `src/harness/ground-truth.ts` | `VaultGroundTruthValidator` + fake-friendly `VaultReader` interface |
 | `src/harness/obsidian-vault.ts` | `ObsidianVaultReader` backed by Obsidian's metadata cache |
+| `src/harness/approval-gate.ts` | `ObsidianApprovalGate` that opens `ApprovalModal` |
+| `src/ui/approval-modal.ts` | Modal UI for diff review and approve/reject |
 | `src/fixtures/f01.ts` | Fixture policing the harness end-to-end with a fake LLM |
 | `src/fixtures/f02.ts` | Fixture policing Huginn settings sanitization |
 | `src/fixtures/f03.ts` | Fixture policing ground-truth validation against a fake vault |
+| `src/fixtures/f04.ts` | Fixture policing the approval request shape |
 
 ## Wiring into Obsidian
 
@@ -112,4 +115,5 @@ The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `sr
 - ✅ A real `LlmClient` adapter — `OllamaChatClient` in `src/llm/client.ts`.
 - ✅ First skill end-to-end — tag assignment recipe.
 - ✅ Obsidian command to run a chosen recipe with a user-supplied target path.
-- Human approval UI.
+- ✅ Human approval UI (`ApprovalModal` + `ObsidianApprovalGate`).
+- Write-class apply routines (deferred until approval UX is proven).

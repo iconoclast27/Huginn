@@ -26,9 +26,16 @@ export interface InputGatherer {
     gather(recipe: LoadedRecipe, params?: Record<string, unknown>): Promise<GatheredInput[]>;
 }
 
+export interface ApprovalRequest {
+    diffText: string;
+    output: unknown;
+    recipeName: string;
+    targetPath?: string;
+}
+
 export interface ApprovalGate {
     /** Return true to allow apply, false to reject, null to leave unapproved (tests). */
-    approve(diffText: string, output: unknown): Promise<boolean | null>;
+    approve(request: ApprovalRequest): Promise<boolean | null>;
 }
 
 export interface HarnessOptions {
@@ -92,8 +99,14 @@ export class HuginnHarness {
         let approved: boolean | null = null;
         let applyResult: ApplyResult | null = null;
 
+        const targetPath = findTargetPath(inputs);
         if (schemaValid && groundTruthValid) {
-            approved = await this.opts.approvalGate.approve(JSON.stringify(diff.changes), afterState ?? {});
+            approved = await this.opts.approvalGate.approve({
+                diffText: JSON.stringify(diff.changes),
+                output: afterState ?? {},
+                recipeName: recipe.metadata.name,
+                targetPath,
+            });
             if (approved === true) {
                 const routine = this.opts.applyRegistry.get(recipe.applyMethod);
                 if (!routine) {
@@ -147,4 +160,9 @@ export class StaticApprovalGate implements ApprovalGate {
     async approve(): Promise<boolean | null> {
         return this.decision;
     }
+}
+
+export function findTargetPath(inputs: GatheredInput[]): string | undefined {
+    const found = inputs.find((i) => i.key === 'targetPath');
+    return typeof found?.value === 'string' ? found.value : undefined;
 }

@@ -47,7 +47,7 @@ export function createDefaultApplyRegistry(): ApplyRegistry {
         const typed = output as { tag?: string; reason?: string; confidence?: number };
         return {
             applied: false,
-            message: `suggest-tags for ${recipe.metadata.name}: propose tag '${typed.tag ?? 'none'}' (${typed.reason ?? 'no reason'}). No file was modified.`,
+            message: `suggest-tags for ${recipe.metadata.name}: propose tag '${typed.tag ?? 'none'}' (${typed.reason ?? 'no reason'}). Approved by user, but write-class apply is deferred; no file was modified.`,
         };
     });
     return registry;
