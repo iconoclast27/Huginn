@@ -21,6 +21,8 @@ import { loadRecipes } from './recipes/loader.ts';
 import type { LoadedRecipe } from './recipes/types.ts';
 import type { MuninnApi } from './muninn-api.ts';
 import { RecipeChooserModal } from './ui/recipe-modal.ts';
+import { ChatController } from './chat/chat.ts';
+import { ChatModal } from './ui/chat-modal.ts';
 
 const MUNINN_PLUGIN_ID = 'muninn';
 const RECIPE_DIR = 'Agents/Huginn/SKILLS';
@@ -35,6 +37,7 @@ export default class HuginnPlugin extends Plugin {
     settings: HuginnSettings = { ...DEFAULT_SETTINGS };
     private muninnApi: MuninnApi | null = null;
     private harness: HuginnHarness | null = null;
+    private chatClient: OllamaChatClient | null = null;
 
     async onload(): Promise<void> {
         try {
@@ -56,6 +59,14 @@ export default class HuginnPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: 'open-chat',
+            name: 'Open Huginn chat',
+            callback: () => {
+                void this.openChat();
+            },
+        });
+
         this.app.workspace.onLayoutReady(() => {
             void this.awaitMuninnReady().then((api) => {
                 if (api === null) {
@@ -63,12 +74,13 @@ export default class HuginnPlugin extends Plugin {
                     return;
                 }
                 this.muninnApi = api;
+                this.chatClient = new OllamaChatClient({
+                    baseUrl: this.settings.ollamaUrl,
+                    model: this.settings.ollamaChatModel,
+                    timeoutMs: this.settings.chatTimeoutMs,
+                });
                 this.harness = new HuginnHarness({
-                    llmClient: new OllamaChatClient({
-                        baseUrl: this.settings.ollamaUrl,
-                        model: this.settings.ollamaChatModel,
-                        timeoutMs: this.settings.chatTimeoutMs,
-                    }),
+                    llmClient: this.chatClient,
                     inputGatherer: new MuninnApiInputGatherer({ api, app: this.app }),
                     approvalGate: new ObsidianApprovalGate(this.app),
                     applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
@@ -175,6 +187,15 @@ export default class HuginnPlugin extends Plugin {
         const result = await this.harness!.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {});
         // eslint-disable-next-line no-console
         console.log('[Huginn] recipe result:', result);
+    }
+
+    private openChat(): void {
+        if (this.chatClient === null) {
+            new Notice('Huginn chat is not ready. Is Muninn installed and enabled?');
+            return;
+        }
+        const controller = new ChatController({ app: this.app, llmClient: this.chatClient });
+        new ChatModal(this.app, controller).open();
     }
 }
 

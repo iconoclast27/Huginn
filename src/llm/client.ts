@@ -6,9 +6,19 @@
 // implement this interface. Fake clients make fixtures deterministic.
 // =============================================================================
 
+export interface ChatMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
+
 export interface LlmClient {
     /** Complete a prompt. Returns the raw model output or null on failure. */
     complete(prompt: string): Promise<string | null>;
+}
+
+export interface ChatLlmClient extends LlmClient {
+    /** Send a full message history and return the assistant's reply, or null on failure. */
+    chat(messages: ChatMessage[]): Promise<string | null>;
 }
 
 export class FakeLlmClient implements LlmClient {
@@ -36,10 +46,18 @@ export interface OllamaChatOptions {
     timeoutMs?: number;
 }
 
-export class OllamaChatClient implements LlmClient {
+export class OllamaChatClient implements ChatLlmClient {
     constructor(private opts: OllamaChatOptions) {}
 
     async complete(prompt: string): Promise<string | null> {
+        const messages: ChatMessage[] = [
+            ...(this.opts.systemPrompt ? [{ role: 'system' as const, content: this.opts.systemPrompt }] : []),
+            { role: 'user', content: prompt },
+        ];
+        return this.chat(messages);
+    }
+
+    async chat(messages: ChatMessage[]): Promise<string | null> {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.opts.timeoutMs ?? 60000);
         try {
@@ -48,10 +66,7 @@ export class OllamaChatClient implements LlmClient {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: this.opts.model,
-                    messages: [
-                        ...(this.opts.systemPrompt ? [{ role: 'system', content: this.opts.systemPrompt }] : []),
-                        { role: 'user', content: prompt },
-                    ],
+                    messages,
                     stream: false,
                     // Do not send "format": "json" — Ollama versions vary in how they
                     // validate it, and the recipe's system prompt already demands raw JSON.

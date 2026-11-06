@@ -1,4 +1,4 @@
-# Huginn Smoke Test Scenario v0.1.0-test.7
+# Huginn Smoke Test Scenario v0.1.0-test.8
 
 ## Environment
 
@@ -7,13 +7,13 @@
 - A chat-capable model pulled, e.g. `qwen3.5:4b`.
 - Muninn `0.2.0-test.15` (or later) installed and enabled.
 - Vault already indexed by Muninn (run **Muninn: Force reindex vault** if unsure).
-- Huginn `0.1.0-test.7` (or later) installed via BRAT.
+- Huginn `0.1.0-test.8` (or later) installed via BRAT.
 
 ## Install Huginn via BRAT
 
 1. Install the BRAT plugin in Obsidian if it is not already installed.
 2. Open **Obsidian Settings → Community Plugins → BRAT**.
-3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.7`.
+3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.8`.
 4. Enable the **Huginn** plugin in Obsidian settings.
 5. Reload Obsidian if prompted.
 6. Wait for Muninn's initial reindex to complete before testing Huginn.
@@ -113,12 +113,37 @@
 - [ ] A `POST /api/chat` request is sent.
 - [ ] `[Huginn] chat model warmup complete` appears (or a warning if Ollama is unreachable).
 
+## Scenario E: Open Huginn chat with active-note context
+
+### Conditions
+- Scenario A passed.
+- A markdown note is open in the active editor.
+- Ollama has the configured chat model available.
+
+### Steps
+1. Open any note in the vault, e.g. `notes/gamma.md`.
+2. Open the Obsidian command palette.
+3. Run **Huginn: Open Huginn chat**.
+4. Wait for the chat modal to appear.
+5. Type a question about the active note, e.g. `Summarize this note in one sentence.`.
+6. Press **Enter** (or click **Send**).
+7. Wait for the model response to appear.
+
+### Expected results
+- [ ] The chat modal opens and shows the active note path in the header.
+- [ ] The input area accepts text; **Shift+Enter** inserts a newline while **Enter** sends.
+- [ ] Console shows a `POST /api/chat` request with a `system` message containing the active note body.
+- [ ] A `user` bubble appears with the typed question.
+- [ ] An `assistant` bubble appears with a model response.
+- [ ] Closing and reopening the chat starts a fresh session.
+
 ## Known limitations
 
-- v0.1.0-test.7 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **summary-generation** and **task-extraction** remain read-only.
+- v0.1.0-test.8 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **summary-generation** and **task-extraction** remain read-only.
 - Ground-truth validation currently checks only whether the proposed tag is already present in the target note's frontmatter `tags`.
 - Title suggestion sets or replaces the first `# ` heading in the note body; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
+- Chat uses **active-note context only** in this first cut. It has no memory across sessions and does not pull in linked or related notes.
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
 
 ## What to capture when reporting results
