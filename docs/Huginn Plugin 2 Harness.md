@@ -73,7 +73,7 @@ noop
 5. **Parse + schema validate** — output must be valid JSON and match the recipe's output schema. Violations are returned as typed `ValidationError`s.
 6. **Ground-truth validate** — `VaultGroundTruthValidator` checks the output against the actual vault file (e.g., the proposed tag must not already be in the note's frontmatter `tags`).
 7. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
-8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**. Write-class apply is still deferred even after approval.
+8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**.
 9. **Apply** — the routine named by `Apply Method` runs only after approval. The model cannot invoke routines directly.
 
 ## Source modules
@@ -88,13 +88,15 @@ noop
 | `src/harness/validator.ts` | Minimal JSON-schema validator |
 | `src/harness/diff.ts` | Value diff gate + text render |
 | `src/harness/apply.ts` | Apply-routine registry |
-| `src/llm/client.ts` | `LlmClient` interface + `OllamaChatClient` with response-body logging |
+| `src/llm/client.ts` | `LlmClient` / `ChatLlmClient` interfaces + `OllamaChatClient` with response-body logging |
 | `src/harness/harness.ts` | `HuginnHarness` orchestrator |
 | `src/harness/gather.ts` | `MuninnApiInputGatherer` |
 | `src/harness/ground-truth.ts` | `VaultGroundTruthValidator` + fake-friendly `VaultReader` interface |
 | `src/harness/obsidian-vault.ts` | `ObsidianVaultReader` backed by Obsidian's metadata cache |
 | `src/harness/approval-gate.ts` | `ObsidianApprovalGate` that opens `ApprovalModal` |
 | `src/ui/approval-modal.ts` | Modal UI for diff review and approve/reject |
+| `src/chat/chat.ts` | `ChatController`: active-note context, system prompt, message history |
+| `src/ui/chat-modal.ts` | `ChatModal`: bubble UI, input textarea, send handling |
 | `src/fixtures/f01.ts` | Fixture policing the harness end-to-end with a fake LLM |
 | `src/fixtures/f02.ts` | Fixture policing Huginn settings sanitization |
 | `src/fixtures/f03.ts` | Fixture policing ground-truth validation against a fake vault |
@@ -102,11 +104,25 @@ noop
 
 ## Wiring into Obsidian
 
-The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `src/main.ts`. It discovers Muninn via `app.plugins.plugins['muninn'].getMuninnApi()`, polling until the API door is ready. The command **"Huginn: Run Huginn skill"** opens a modal (`src/ui/recipe-modal.ts`) that lets the user pick a recipe and enter a target note path, then logs the `RecipeRunResult` to the console.
+The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `src/main.ts`. It discovers Muninn via `app.plugins.plugins['muninn'].getMuninnApi()`, polling until the API door is ready.
+
+Two commands are registered:
+
+- **"Huginn: Run Huginn skill"** opens a modal (`src/ui/recipe-modal.ts`) that lets the user pick a recipe and enter a target note path, then logs the `RecipeRunResult` to the console.
+- **"Huginn: Open Huginn chat"** opens `ChatModal` with a fresh `ChatController` backed by the same `OllamaChatClient` instance used by the harness.
 
 ## Model warmup
 
 `HuginnHarness.warmup()` sends a trivial `/api/chat` completion to pull the configured model back into memory. It is triggered automatically on initialization if the **Warm up chat model on load** setting is enabled.
+
+## Chat interface
+
+The chat path is intentionally minimal in this first cut. It is not a recipe; it uses the same `OllamaChatClient` but sends full message histories.
+
+1. **Context strategy — active note only.** `ChatController.createSession()` reads `app.workspace.getActiveFile()` via `vault.cachedRead()` and injects the note path and body into a `system` message. The model is instructed to answer based on the active note but to fall back to general knowledge if the question is unrelated.
+2. **Message history.** `ChatSession.messages` carries `system`, `user`, and `assistant` messages. `ChatController.sendMessage()` appends the user's message, calls `ChatLlmClient.chat(messages)`, and appends the assistant reply.
+3. **UI.** `ChatModal` renders user/assistant bubbles, keeps the active note path in a header, provides a textarea where **Enter** sends and **Shift+Enter** inserts a newline, and shows a loading state while waiting for Ollama.
+4. **No persistence / no RAG.** Closing the modal discards the session. The chat does not query Muninn's index or pull in linked notes; that is reserved for a later context-strategy increment.
 
 ## What is owed
 
@@ -116,4 +132,6 @@ The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `sr
 - ✅ First skill end-to-end — tag assignment recipe.
 - ✅ Obsidian command to run a chosen recipe with a user-supplied target path.
 - ✅ Human approval UI (`ApprovalModal` + `ObsidianApprovalGate`).
-- Write-class apply routines (deferred until approval UX is proven).
+- ✅ Write-class apply routines for `suggest-tags`, `suggest-title`, and `suggest-links` — `createDefaultApplyRegistry` in `src/harness/apply.ts`.
+- ✅ Chat modal using active-note context.
+- Richer chat context (linked/related notes, full vault RAG) — deferred until active-note smoke test passes.
