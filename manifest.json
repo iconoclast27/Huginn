@@ -1,0 +1,11 @@
+{
+    "id": "huginn",
+    "name": "Huginn",
+    "version": "0.1.0-test.1",
+    "minAppVersion": "0.15.0",
+    "description": "AI assistant plugin for Obsidian — chat and skills driven by the Muninn vault index.",
+    "author": "iconoclast27",
+    "authorUrl": "",
+    "fundingUrl": "",
+    "isDesktopOnly": false
+}
