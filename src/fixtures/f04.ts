@@ -108,8 +108,8 @@ async function main(): Promise<void> {
             console.log('[F04] RED: expected targetPath notes/gamma.md, got', req.targetPath);
         }
         try {
-            const changes = JSON.parse(req.diffText) as unknown[];
-            if (!Array.isArray(changes) || changes.length === 0) {
+            const parsedDiff = JSON.parse(req.diffText) as { changes: unknown[] };
+            if (!Array.isArray(parsedDiff.changes) || parsedDiff.changes.length === 0) {
                 failures++;
                 console.log('[F04] RED: diffText did not contain changes');
             }

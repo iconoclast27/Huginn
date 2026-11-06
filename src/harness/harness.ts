@@ -102,7 +102,7 @@ export class HuginnHarness {
         const targetPath = findTargetPath(inputs);
         if (schemaValid && groundTruthValid) {
             approved = await this.opts.approvalGate.approve({
-                diffText: JSON.stringify(diff.changes),
+                diffText: JSON.stringify(diff),
                 output: afterState ?? {},
                 recipeName: recipe.metadata.name,
                 targetPath,
