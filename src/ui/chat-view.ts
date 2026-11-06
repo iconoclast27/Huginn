@@ -9,12 +9,23 @@
 
 import { ItemView, WorkspaceLeaf, type ViewStateResult } from 'obsidian';
 import { ChatController, type ChatSession } from '../chat/chat.ts';
+import { ChatSkillDispatcher, type DispatchResult, type DispatchIntent } from '../chat/dispatch.ts';
 import { emptyChatState, sanitizeChatState, type HuginnChatState } from './chat-state.ts';
+import type { HuginnHarness } from '../harness/harness.ts';
+import type { LoadedRecipe } from '../recipes/types.ts';
+import { normalizeNotePath } from './path-utils.ts';
 
 export const HUGINN_CHAT_VIEW_TYPE = 'huginn-chat';
 
+export interface ChatViewServices {
+    controller: ChatController;
+    dispatcher: ChatSkillDispatcher;
+    harness: HuginnHarness | null;
+    recipes: LoadedRecipe[];
+}
+
 export class HuginnChatView extends ItemView {
-    private controller: ChatController;
+    private services: ChatViewServices;
     private session: ChatSession;
     private container: HTMLElement | null = null;
     private messagesContainer: HTMLDivElement | null = null;
@@ -23,9 +34,9 @@ export class HuginnChatView extends ItemView {
     private contextEl: HTMLElement | null = null;
     private isLoading = false;
 
-    constructor(leaf: WorkspaceLeaf, controller: ChatController) {
+    constructor(leaf: WorkspaceLeaf, services: ChatViewServices) {
         super(leaf);
-        this.controller = controller;
+        this.services = services;
         this.session = emptyChatState();
     }
 
@@ -118,7 +129,7 @@ export class HuginnChatView extends ItemView {
     }
 
     private async refreshContext(): Promise<void> {
-        this.session = await this.controller.createSession();
+        this.session = await this.services.controller.createSession();
         this.applySessionToDom();
     }
 
@@ -150,17 +161,66 @@ export class HuginnChatView extends ItemView {
         this.renderMessage('user', text);
         this.inputEl.value = '';
 
-        const result = await this.controller.sendMessage(this.session, text);
-        this.session = result.updatedSession;
+        // First, try skill dispatch. If the model maps the request to a known
+        // recipe, run the harness and render the structured result. Otherwise,
+        // fall back to a plain chat completion.
+        const dispatch = await this.services.dispatcher.dispatch(text, this.session.activeNotePath);
+        const intent = dispatch.intent;
+        const recipe = intent
+            ? this.services.recipes.find((r) => r.metadata.name === intent.recipeName) ?? null
+            : null;
 
+        if (intent && recipe) {
+            await this.runSkillFromChat(intent, recipe, dispatch);
+        } else {
+            await this.runPlainChat(text);
+        }
+
+        this.setLoading(false);
+        this.scrollToBottom();
+    }
+
+    private async runPlainChat(text: string): Promise<void> {
+        const result = await this.services.controller.sendMessage(this.session, text);
+        this.session = result.updatedSession;
         if (result.response === null) {
             this.renderMessage('assistant', '[No response from model]');
         } else {
             this.renderMessage('assistant', result.response);
         }
+    }
 
-        this.setLoading(false);
-        this.scrollToBottom();
+    private async runSkillFromChat(intent: DispatchIntent, recipe: LoadedRecipe, dispatch: DispatchResult): Promise<void> {
+        if (!this.services.harness) {
+            this.renderMessage('assistant', 'Huginn harness is not ready yet. Is Muninn installed and enabled?');
+            return;
+        }
+
+        this.renderMessage('assistant', `Running ${recipe.metadata.name} on ${intent.targetPath}... (${intent.reason})`);
+
+        const targetPath = normalizeNotePath(intent.targetPath);
+        const result = await this.services.harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {});
+
+        if (!result.schemaValid) {
+            const msg = result.schemaErrors.map((e) => e.message).join('; ');
+            this.renderMessage('assistant', `Skill failed: ${msg}`);
+            return;
+        }
+        if (!result.groundTruthValid) {
+            const msg = result.groundTruthErrors.map((e) => e.message).join('; ');
+            this.renderMessage('assistant', `Ground-truth check failed: ${msg}`);
+            return;
+        }
+
+        if (result.applyResult) {
+            this.renderMessage('assistant', result.applyResult.message);
+        } else if (result.approved === false) {
+            this.renderMessage('assistant', 'Skill suggestion was rejected.');
+        } else {
+            // Read-only skill or approval gate returned null (tests). Render
+            // the structured output as a compact JSON blob.
+            this.renderMessage('assistant', '```json\n' + JSON.stringify(result.parsedOutput.json, null, 2) + '\n```');
+        }
     }
 
     private renderMessage(role: 'user' | 'assistant', content: string): void {

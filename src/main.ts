@@ -22,6 +22,7 @@ import type { LoadedRecipe } from './recipes/types.ts';
 import type { MuninnApi } from './muninn-api.ts';
 import { RecipeChooserModal } from './ui/recipe-modal.ts';
 import { ChatController } from './chat/chat.ts';
+import { ChatSkillDispatcher } from './chat/dispatch.ts';
 import { HuginnChatView, HUGINN_CHAT_VIEW_TYPE } from './ui/chat-view.ts';
 
 const MUNINN_PLUGIN_ID = 'muninn';
@@ -38,6 +39,7 @@ export default class HuginnPlugin extends Plugin {
     private muninnApi: MuninnApi | null = null;
     private harness: HuginnHarness | null = null;
     private chatClient: OllamaChatClient | null = null;
+    private recipes: LoadedRecipe[] = [];
 
     async onload(): Promise<void> {
         try {
@@ -69,7 +71,7 @@ export default class HuginnPlugin extends Plugin {
 
         this.registerView(
             HUGINN_CHAT_VIEW_TYPE,
-            (leaf) => new HuginnChatView(leaf, this.createChatController()),
+            (leaf) => new HuginnChatView(leaf, this.createChatViewServices()),
         );
 
         this.addRibbonIcon('message-square', 'Huginn chat', () => {
@@ -77,7 +79,7 @@ export default class HuginnPlugin extends Plugin {
         });
 
         this.app.workspace.onLayoutReady(() => {
-            void this.awaitMuninnReady().then((api) => {
+            void this.awaitMuninnReady().then(async (api) => {
                 if (api === null) {
                     new Notice('Huginn requires Muninn to be installed and enabled.');
                     return;
@@ -95,6 +97,8 @@ export default class HuginnPlugin extends Plugin {
                     applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
                     groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
                 });
+                // Load recipes early so chat dispatch has the catalog available.
+                await this.loadRecipes();
                 // eslint-disable-next-line no-console
                 console.log('[Huginn] harness initialized against Muninn API');
                 if (this.settings.warmupOnFocus) {
@@ -172,22 +176,26 @@ export default class HuginnPlugin extends Plugin {
                 groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
             });
         }
-        const source = new ObsidianRecipeSource(this.app.vault, RECIPE_DIR);
-        const loadResult = await loadRecipes(source);
-        if (loadResult.recipes.length === 0) {
-            // eslint-disable-next-line no-console
-            console.log('[Huginn] no recipes in', RECIPE_DIR);
+        const recipes = await this.loadRecipes();
+        if (recipes.length === 0) {
             new Notice(`No recipes found in ${RECIPE_DIR}`);
             return;
         }
+        new RecipeChooserModal(this.app, recipes, this.settings.defaultTargetPath, (req) => {
+            if (req === null) return;
+            void this.runChosenRecipe(req.recipe, req.targetPath);
+        }).open();
+    }
+
+    private async loadRecipes(): Promise<LoadedRecipe[]> {
+        const source = new ObsidianRecipeSource(this.app.vault, RECIPE_DIR);
+        const loadResult = await loadRecipes(source);
         if (loadResult.errors.length > 0) {
             // eslint-disable-next-line no-console
             console.warn('[Huginn] recipe load errors:', loadResult.errors);
         }
-        new RecipeChooserModal(this.app, loadResult.recipes, this.settings.defaultTargetPath, (req) => {
-            if (req === null) return;
-            void this.runChosenRecipe(req.recipe, req.targetPath);
-        }).open();
+        this.recipes = loadResult.recipes;
+        return this.recipes;
     }
 
     private async runChosenRecipe(recipe: LoadedRecipe, targetPath: string): Promise<void> {
@@ -202,16 +210,19 @@ export default class HuginnPlugin extends Plugin {
         void this.openChatView();
     }
 
-    private createChatController(): ChatController {
-        // The view factory runs before Muninn may be ready. Create a transient
-        // client if the shared one is not yet available; it will be replaced
-        // by the shared client once the harness initializes.
+    private createChatViewServices(): import('./ui/chat-view.ts').ChatViewServices {
         const llmClient = this.chatClient ?? new OllamaChatClient({
             baseUrl: this.settings.ollamaUrl,
             model: this.settings.ollamaChatModel,
             timeoutMs: this.settings.chatTimeoutMs,
         });
-        return new ChatController({ app: this.app, llmClient });
+        const recipes = this.recipes;
+        return {
+            controller: new ChatController({ app: this.app, llmClient }),
+            dispatcher: new ChatSkillDispatcher({ llmClient, recipes }),
+            harness: this.harness,
+            recipes,
+        };
     }
 
     private async openChatView(): Promise<void> {

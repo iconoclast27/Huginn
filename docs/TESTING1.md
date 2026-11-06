@@ -137,6 +137,8 @@
 - [ ] An `assistant` bubble appears with a model response.
 - [ ] Closing and reopening the sidebar restores the previous message history.
 - [ ] Clicking **Refresh context** re-reads the active note and starts a new system-message session.
+- [ ] Typing a skill request (e.g. `tag this note`) triggers a second `POST /api/chat` dispatch call, then runs the matching skill and shows its result in the chat.
+- [ ] Write-class skills (tag, title, links) still open the existing approval modal; approving applies the change and the chat shows the apply result.
 
 ## Known limitations
 
@@ -144,7 +146,7 @@
 - Ground-truth validation currently checks only whether the proposed tag is already present in the target note's frontmatter `tags`.
 - Title suggestion sets or replaces the first `# ` heading in the note body; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
-- Chat uses **active-note context only** in this first cut. It has no memory across sessions and does not pull in linked or related notes.
+- Chat uses **active-note context only** for plain chat responses. Skill dispatch sends a separate dispatch request to decide which recipe to run; the recipe itself then gathers its own inputs.
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
 
 ## What to capture when reporting results

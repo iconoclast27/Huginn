@@ -28,7 +28,7 @@ The production bundle is written to `main.js`.
 npm run fixtures
 ```
 
-Runs F01–F10, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, `.md` path normalization, and chat-state sanitization.
+Runs F01–F11, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, and chat skill-dispatch intent parsing.
 
 ## Commands
 

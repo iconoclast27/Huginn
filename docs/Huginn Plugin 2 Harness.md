@@ -96,6 +96,7 @@ noop
 | `src/harness/approval-gate.ts` | `ObsidianApprovalGate` that opens `ApprovalModal` |
 | `src/ui/approval-modal.ts` | Modal UI for diff review and approve/reject |
 | `src/chat/chat.ts` | `ChatController`: active-note context, system prompt, message history |
+| `src/chat/dispatch.ts` | `ChatSkillDispatcher`: model maps user request to recipe + target path |
 | `src/ui/chat-view.ts` | `HuginnChatView`: sidebar `ItemView` with bubble UI, input, and state |
 | `src/ui/chat-state.ts` | Serializable chat state + sanitization for view persistence |
 | `src/fixtures/f01.ts` | Fixture policing the harness end-to-end with a fake LLM |
@@ -124,7 +125,8 @@ The chat path is intentionally minimal in this first cut. It is not a recipe; it
 2. **Message history.** `ChatSession.messages` carries `system`, `user`, and `assistant` messages. `ChatController.sendMessage()` appends the user's message, calls `ChatLlmClient.chat(messages)`, and appends the assistant reply.
 3. **UI.** `HuginnChatView` renders user/assistant bubbles, keeps the active note path in a header, provides a textarea where **Enter** sends and **Shift+Enter** inserts a newline, and shows a loading state while waiting for Ollama. A **Refresh context** button re-reads the active note and starts a new session.
 4. **Persistence across sidebar close/reopen.** The view implements `getState`/`setState` so Obsidian restores the message history and active note path when the sidebar is closed and reopened. The note body itself is not persisted; re-opening re-reads the current active note if the user clicks **Refresh context**.
-5. **No RAG / no skill dispatch yet.** The chat does not query Muninn's index or pull in linked notes, and it cannot invoke recipes. Those are reserved for later context-strategy increments.
+5. **Skill dispatch.** When the user sends a message, `ChatSkillDispatcher` asks the model to pick a recipe and a target note path. If a valid recipe is selected, `HuginnHarness.run()` executes it and the result is rendered in the chat. If no recipe matches, the message falls back to a plain chat completion.
+6. **No RAG yet.** The chat does not inject vault-wide search results; skill dispatch uses the recipe's own input gatherer for vocabulary/related content.
 
 ## What is owed
 
