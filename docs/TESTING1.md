@@ -75,10 +75,9 @@
 - [ ] `parsedOutput.json` contains `tag`, `reason`, and `confidence` fields.
 - [ ] `groundTruthValid: true` when the proposed tag is **not** already in the target note's frontmatter `tags`.
 - [ ] If the note already has the proposed tag, `groundTruthValid: false` and `groundTruthErrors` explains the conflict.
-- [ ] `applyResult.applied: false`.
-- [ ] When you click **Reject** in the approval modal, `applyResult.message` contains `"Rejected by approval gate."`.
-- [ ] When you click **Approve** in the approval modal, `applyResult.message` indicates the suggestion was approved but write-class apply is still deferred.
-- [ ] No vault file was modified.
+- [ ] When you click **Reject** in the approval modal, `applyResult.applied: false` and `applyResult.message` contains `"Rejected by approval gate."`.
+- [ ] When you click **Approve** in the approval modal, `applyResult.applied: true` and `applyResult.message` indicates the file was modified.
+- [ ] The target note's frontmatter now includes the proposed tag under `tags`. If the note had no frontmatter, a new frontmatter block was created.
 
 ## Scenario C: Missing Muninn produces a user-facing notice
 
@@ -116,9 +115,10 @@
 
 ## Known limitations
 
-- v0.1.0-test.5 is read-only: the skill returns a suggestion but never writes to a note.
+- v0.1.0-test.7 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **summary-generation** and **task-extraction** remain read-only.
 - Ground-truth validation currently checks only whether the proposed tag is already present in the target note's frontmatter `tags`.
-- The approval modal appears after schema and ground-truth validation pass; approval does not yet cause a vault write.
+- Title suggestion sets or replaces the first `# ` heading in the note body; it does not rename the file.
+- Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
 
 ## What to capture when reporting results

@@ -12,6 +12,7 @@ import { HuginnHarness, ManualInputGatherer, type ApprovalGate, type ApprovalReq
 import { FakeLlmClient } from '../llm/client.ts';
 import { createDefaultApplyRegistry } from '../harness/apply.ts';
 import { parseRecipe } from '../recipes/parser.ts';
+import { createApplyOptionsForFakeApp } from './fake-app.ts';
 import type { LoadedRecipe } from '../recipes/types.ts';
 
 const recipeSource = `---
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
             ['candidates', { tags: [{ tag: 'index', files: 5, chunks: 12 }] }],
         ])),
         approvalGate: gate,
-        applyRegistry: createDefaultApplyRegistry(),
+        applyRegistry: createDefaultApplyRegistry(createApplyOptionsForFakeApp({ 'notes/gamma.md': '' })),
     });
 
     const result = await harness.run(recipe, { targetPath: 'notes/gamma.md' }, {});

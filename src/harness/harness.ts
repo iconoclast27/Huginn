@@ -112,7 +112,7 @@ export class HuginnHarness {
                 if (!routine) {
                     applyResult = { applied: false, message: `Unknown apply method: ${recipe.applyMethod}` };
                 } else {
-                    applyResult = await routine(recipe, afterState ?? {});
+                    applyResult = await routine({ recipe, output: afterState ?? {}, inputs });
                 }
             } else if (approved === false) {
                 applyResult = { applied: false, message: 'Rejected by approval gate.' };

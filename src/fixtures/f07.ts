@@ -16,46 +16,10 @@ import { HuginnHarness, StaticApprovalGate } from '../harness/harness.ts';
 import { createDefaultApplyRegistry } from '../harness/apply.ts';
 import { loadRecipes } from '../recipes/loader.ts';
 import { NodeRecipeSource } from '../recipes/node-source.ts';
+import { createApplyOptionsForFakeApp, createFakeApp } from './fake-app.ts';
 import type { MuninnApi } from '../muninn-api.ts';
 
 const NOTE_BODY = 'This home note discusses daily planning and links to notes/alpha.md.';
-
-interface FakeFile {
-    path: string;
-    name: string;
-    extension: string;
-}
-
-interface FakeVault {
-    getAbstractFileByPath(path: string): FakeFile | null;
-    cachedRead(file: FakeFile): Promise<string>;
-}
-
-interface FakeApp {
-    vault: FakeVault;
-}
-
-function createFakeApp(files: Record<string, string>): FakeApp {
-    const vaultFiles = new Map<string, FakeFile>();
-    for (const [path] of Object.entries(files)) {
-        vaultFiles.set(path, {
-            path,
-            name: path.split('/').pop() ?? path,
-            extension: 'md',
-        });
-    }
-
-    return {
-        vault: {
-            getAbstractFileByPath(path: string) {
-                return vaultFiles.get(path) ?? null;
-            },
-            async cachedRead(file: FakeFile): Promise<string> {
-                return files[file.path] ?? '';
-            },
-        },
-    };
-}
 
 function createFakeApi(): MuninnApi {
     return {
@@ -81,9 +45,10 @@ async function main(): Promise<void> {
     let failures = 0;
     console.log('[F07] MuninnApiInputGatherer content source end-to-end');
 
-    const app = createFakeApp({ 'notes/Home.md': NOTE_BODY });
+    const files: Record<string, string> = { 'notes/Home.md': NOTE_BODY };
+    const fakeApp = createFakeApp(files);
     const api = createFakeApi();
-    const gatherer = new MuninnApiInputGatherer({ api, app });
+    const gatherer = new MuninnApiInputGatherer({ api, app: fakeApp as unknown as import('obsidian').App });
 
     const source = new NodeRecipeSource('src/recipes');
     const loadResult = await loadRecipes(source);
@@ -99,7 +64,7 @@ async function main(): Promise<void> {
             })),
             inputGatherer: gatherer,
             approvalGate: new StaticApprovalGate(false),
-            applyRegistry: createDefaultApplyRegistry(),
+            applyRegistry: createDefaultApplyRegistry(createApplyOptionsForFakeApp(files)),
         });
 
         const result = await harness.run(recipe, { targetPath: 'notes/Home.md' }, {});

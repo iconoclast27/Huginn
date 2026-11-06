@@ -14,12 +14,18 @@ import { FakeLlmClient } from '../llm/client.ts';
 import { createDefaultApplyRegistry } from '../harness/apply.ts';
 import { loadRecipes } from '../recipes/loader.ts';
 import { NodeRecipeSource } from '../recipes/node-source.ts';
+import { createApplyOptionsForFakeApp } from './fake-app.ts';
 
-const TEST_CASES: Record<string, string> = {
-    'title-suggestion': JSON.stringify({ title: 'Better Home Note', reason: 'more descriptive', confidence: 0.8 }),
-    'link-suggestion': JSON.stringify({ links: ['notes/alpha.md', 'notes/beta.md'], confidence: 0.7 }),
-    'summary-generation': JSON.stringify({ summary: 'A concise overview of the home note.', confidence: 0.9 }),
-    'task-extraction': JSON.stringify({ tasks: ['Review home note structure', 'Add missing links'], confidence: 0.8 }),
+interface TestCase {
+    raw: string;
+    expectApplied: boolean;
+}
+
+const TEST_CASES: Record<string, TestCase> = {
+    'title-suggestion': { raw: JSON.stringify({ title: 'Better Home Note', reason: 'more descriptive', confidence: 0.8 }), expectApplied: true },
+    'link-suggestion': { raw: JSON.stringify({ links: ['notes/alpha.md', 'notes/beta.md'], confidence: 0.7 }), expectApplied: true },
+    'summary-generation': { raw: JSON.stringify({ summary: 'A concise overview of the home note.', confidence: 0.9 }), expectApplied: false },
+    'task-extraction': { raw: JSON.stringify({ tasks: ['Review home note structure', 'Add missing links'], confidence: 0.8 }), expectApplied: false },
 };
 
 async function main(): Promise<void> {
@@ -29,7 +35,7 @@ async function main(): Promise<void> {
     const source = new NodeRecipeSource('src/recipes');
     const result = await loadRecipes(source);
 
-    for (const [name, raw] of Object.entries(TEST_CASES)) {
+    for (const [name, testCase] of Object.entries(TEST_CASES)) {
         const recipe = result.recipes.find((r) => r.metadata.name === name);
         if (!recipe) {
             failures++;
@@ -38,7 +44,7 @@ async function main(): Promise<void> {
         }
 
         const harness = new HuginnHarness({
-            llmClient: new FakeLlmClient(raw),
+            llmClient: new FakeLlmClient(testCase.raw),
             inputGatherer: new ManualInputGatherer(new Map<string, unknown>([
                 ['targetPath', 'notes/Home.md'],
                 ['content', 'This is the home note. It links to alpha and beta.'],
@@ -48,7 +54,7 @@ async function main(): Promise<void> {
                 ['titleQuery', 'home'],
             ])),
             approvalGate: new StaticApprovalGate(true), // approve to exercise apply routine
-            applyRegistry: createDefaultApplyRegistry(),
+            applyRegistry: createDefaultApplyRegistry(createApplyOptionsForFakeApp({ 'notes/Home.md': 'This is the home note. It links to alpha and beta.' })),
         });
 
         const runResult = await harness.run(recipe, { targetPath: 'notes/Home.md' }, {});
@@ -59,9 +65,9 @@ async function main(): Promise<void> {
         } else if (runResult.approved !== true) {
             failures++;
             console.log(`[F06] RED: ${name} expected approved true, got`, runResult.approved);
-        } else if (runResult.applyResult === null || runResult.applyResult.applied !== false) {
+        } else if (runResult.applyResult === null || runResult.applyResult.applied !== testCase.expectApplied) {
             failures++;
-            console.log(`[F06] RED: ${name} expected applyResult.applied false, got`, runResult.applyResult);
+            console.log(`[F06] RED: ${name} expected applyResult.applied ${testCase.expectApplied}, got`, runResult.applyResult);
         } else {
             console.log(`[F06] PASS: ${name} ran end-to-end`);
         }

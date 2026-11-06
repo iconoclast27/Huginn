@@ -7,7 +7,7 @@
 // index and exposes it through getMuninnApi().
 // =============================================================================
 
-import { Plugin, Setting, PluginSettingTab, Notice } from 'obsidian';
+import { Plugin, Setting, PluginSettingTab, Notice, TFile, type App } from 'obsidian';
 import { DEFAULT_SETTINGS, sanitizeSettings, type HuginnSettings } from './settings.ts';
 import { OllamaChatClient } from './llm/client.ts';
 import { HuginnHarness } from './harness/harness.ts';
@@ -67,12 +67,11 @@ export default class HuginnPlugin extends Plugin {
                     llmClient: new OllamaChatClient({
                         baseUrl: this.settings.ollamaUrl,
                         model: this.settings.ollamaChatModel,
-                        systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
                         timeoutMs: this.settings.chatTimeoutMs,
                     }),
                     inputGatherer: new MuninnApiInputGatherer({ api, app: this.app }),
                     approvalGate: new ObsidianApprovalGate(this.app),
-                    applyRegistry: createDefaultApplyRegistry(),
+                    applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
                     groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
                 });
                 // eslint-disable-next-line no-console
@@ -148,7 +147,7 @@ export default class HuginnPlugin extends Plugin {
                 }),
                 inputGatherer: new MuninnApiInputGatherer({ api, app: this.app }),
                 approvalGate: new ObsidianApprovalGate(this.app),
-                applyRegistry: createDefaultApplyRegistry(),
+                applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
                 groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
             });
         }
@@ -177,6 +176,23 @@ export default class HuginnPlugin extends Plugin {
         // eslint-disable-next-line no-console
         console.log('[Huginn] recipe result:', result);
     }
+}
+
+function createObsidianApplyOptions(app: App): { resolveFile: (path: string) => unknown; readFile: (file: unknown) => Promise<string>; writeFile: (file: unknown, content: string) => Promise<void>; } {
+    return {
+        resolveFile(path: string): unknown {
+            const file = app.vault.getAbstractFileByPath(path);
+            return file instanceof TFile ? file : null;
+        },
+        async readFile(file: unknown): Promise<string> {
+            if (!(file instanceof TFile)) throw new Error('Invalid file');
+            return app.vault.read(file);
+        },
+        async writeFile(file: unknown, content: string): Promise<void> {
+            if (!(file instanceof TFile)) throw new Error('Invalid file');
+            await app.vault.modify(file, content);
+        },
+    };
 }
 
 // ---------------------------------------------------------------------------

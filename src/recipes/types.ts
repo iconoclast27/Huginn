@@ -145,6 +145,12 @@ export interface ApplyResult {
     message: string;
 }
 
+export interface ApplyContext {
+    recipe: LoadedRecipe;
+    output: unknown;
+    inputs: GatheredInput[];
+}
+
 export interface RecipeRunResult {
     recipeName: string;
     renderedPrompt: string;
