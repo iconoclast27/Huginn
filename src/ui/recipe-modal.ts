@@ -7,6 +7,7 @@
 // =============================================================================
 
 import { Modal, Setting, Notice, type App } from 'obsidian';
+import { normalizeNotePath } from './path-utils.ts';
 import type { LoadedRecipe } from '../recipes/types.ts';
 
 export interface RecipeRunRequest {
@@ -77,7 +78,7 @@ export class RecipeChooserModal extends Modal {
                     new Notice('Please select a recipe.');
                     return;
                 }
-                const target = this.targetPath.trim();
+                const target = normalizeNotePath(this.targetPath);
                 if (target.length === 0) {
                     new Notice('Please enter a target note path.');
                     return;
@@ -95,4 +96,4 @@ export class RecipeChooserModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
     }
-}
+} 
