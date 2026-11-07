@@ -34,9 +34,16 @@ export interface ApprovalRequest {
     targetPath?: string;
 }
 
+export interface ApprovalResult {
+    /** True if the user approved the suggestion, false if they rejected it. */
+    approved: boolean;
+    /** Optional user-provided reason for rejection; recorded in corrections. */
+    reason?: string;
+}
+
 export interface ApprovalGate {
-    /** Return true to allow apply, false to reject, null to leave unapproved (tests). */
-    approve(request: ApprovalRequest, signal?: AbortSignalLike): Promise<boolean | null>;
+    /** Return the approval result, or null to leave unapproved (tests). */
+    approve(request: ApprovalRequest, signal?: AbortSignalLike): Promise<ApprovalResult | null>;
 }
 
 export interface HarnessOptions {
@@ -113,21 +120,35 @@ export class HuginnHarness {
                 approved = null;
                 applyResult = null;
             } else {
-                approved = await this.opts.approvalGate.approve({
+                const approval = await this.opts.approvalGate.approve({
                     diffText: JSON.stringify(diff),
                     output: afterState ?? {},
                     recipeName: recipe.metadata.name,
                     targetPath,
                 }, signal);
-                if (approved === true) {
-                    const routine = this.opts.applyRegistry.get(recipe.applyMethod);
-                    if (!routine) {
-                        applyResult = { applied: false, message: `Unknown apply method: ${recipe.applyMethod}` };
+                if (approval === null) {
+                    approved = null;
+                } else {
+                    approved = approval.approved;
+                    if (approved === true) {
+                        const routine = this.opts.applyRegistry.get(recipe.applyMethod);
+                        if (!routine) {
+                            applyResult = { applied: false, message: `Unknown apply method: ${recipe.applyMethod}` };
+                        } else {
+                            applyResult = await routine({ recipe, output: afterState ?? {}, inputs });
+                        }
                     } else {
-                        applyResult = await routine({ recipe, output: afterState ?? {}, inputs });
+                        const reason = approval.reason?.trim();
+                        applyResult = { applied: false, message: reason ? `Rejected: ${reason}` : 'Rejected by approval gate.' };
+                        if (this.opts.corrections) {
+                            await this.opts.corrections.append({
+                                recipe: recipe.metadata.name,
+                                type: 'refusal',
+                                key: (reason ?? 'user rejected suggestion').slice(0, 120),
+                                note: reason ? `User rejected suggestion: ${reason}` : 'User rejected the suggested change via the approval gate.',
+                            });
+                        }
                     }
-                } else if (approved === false) {
-                    applyResult = { applied: false, message: 'Rejected by approval gate.' };
                 }
             }
         }
@@ -140,7 +161,7 @@ export class HuginnHarness {
                     key: schemaErrors.map((e) => e.message).join('; ').slice(0, 120),
                     note: `Schema validation failed: ${schemaErrors.map((e) => e.message).join('; ')}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
                 });
-            } else if (applyResult?.applied === false) {
+            } else if (applyResult?.applied === false && !applyResult.message.startsWith('Rejected')) {
                 await this.opts.corrections.append({
                     recipe: recipe.metadata.name,
                     type: 'apply-failed',
@@ -186,10 +207,10 @@ export class ManualInputGatherer implements InputGatherer {
 }
 
 export class StaticApprovalGate implements ApprovalGate {
-    constructor(private decision: boolean | null) {}
+    constructor(private decision: boolean | null, private reason?: string) {}
 
-    async approve(_request: ApprovalRequest, _signal?: AbortSignalLike): Promise<boolean | null> {
-        return this.decision;
+    async approve(_request: ApprovalRequest, _signal?: AbortSignalLike): Promise<ApprovalResult | null> {
+        return this.decision === null ? null : { approved: this.decision, reason: this.reason };
     }
 }
 

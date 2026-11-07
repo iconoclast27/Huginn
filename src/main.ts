@@ -83,6 +83,14 @@ export default class HuginnPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: 'reset-default-recipes',
+            name: 'Reset default Huginn skills',
+            callback: () => {
+                void this.installDefaultRecipes(true);
+            },
+        });
+
         this.registerView(
             HUGINN_CHAT_VIEW_TYPE,
             (leaf) => new HuginnChatView(leaf, this.createChatViewServices()),

@@ -55,7 +55,9 @@ export function createDefaultGroundTruthRegistry(): GroundTruthRegistry {
         .register(fileExistsPrimitive)
         .register(fileNotExistsPrimitive)
         .register(frontmatterContainsPrimitive)
-        .register(frontmatterNotContainsPrimitive);
+        .register(frontmatterNotContainsPrimitive)
+        .register(noteContainsTextPrimitive)
+        .register(noteNotContainsTextPrimitive);
 }
 
 export class VaultGroundTruthValidator implements GroundTruthValidator {
@@ -83,7 +85,12 @@ export class VaultGroundTruthValidator implements GroundTruthValidator {
         }
 
         const ctx: GroundTruthContext = { recipe, output: value, inputs, vault: this.vault };
-        errors.push(...await primitive.validate(ctx, rule.params ?? {}));
+        const primitiveErrors = await primitive.validate(ctx, rule.params ?? {});
+        if (rule.description && primitiveErrors.length > 0) {
+            errors.push(...primitiveErrors.map((e) => ({ path: e.path, message: `${rule.description}: ${e.message}` })));
+        } else {
+            errors.push(...primitiveErrors);
+        }
     }
 }
 
@@ -147,6 +154,42 @@ const frontmatterNotContainsPrimitive: GroundTruthPrimitive = {
         const matched = valuesMatch(fmValue, output);
         return matched
             ? [{ path: String(params.path ?? '/'), message: `value already present in frontmatter key '${key}'` }]
+            : [];
+    },
+};
+
+const noteContainsTextPrimitive: GroundTruthPrimitive = {
+    name: 'note-contains-text',
+    async validate({ vault, output, inputs }, params) {
+        const targetPath = findInputString(inputs, String(params.targetPathInput ?? 'targetPath'));
+        if (!targetPath) {
+            return [{ path: String(params.path ?? '/'), message: 'missing targetPath input for note text check' }];
+        }
+        const body = await vault.readFile(targetPath);
+        if (body === null) {
+            return [{ path: String(params.path ?? '/'), message: `target file not found: ${targetPath}` }];
+        }
+        const needle = String(output).toLowerCase();
+        return body.toLowerCase().includes(needle)
+            ? []
+            : [{ path: String(params.path ?? '/'), message: `text not found in note body: ${String(output)}` }];
+    },
+};
+
+const noteNotContainsTextPrimitive: GroundTruthPrimitive = {
+    name: 'note-not-contains-text',
+    async validate({ vault, output, inputs }, params) {
+        const targetPath = findInputString(inputs, String(params.targetPathInput ?? 'targetPath'));
+        if (!targetPath) {
+            return [{ path: String(params.path ?? '/'), message: 'missing targetPath input for note text check' }];
+        }
+        const body = await vault.readFile(targetPath);
+        if (body === null) {
+            return [{ path: String(params.path ?? '/'), message: `target file not found: ${targetPath}` }];
+        }
+        const needle = String(output).toLowerCase();
+        return body.toLowerCase().includes(needle)
+            ? [{ path: String(params.path ?? '/'), message: `text already present in note body: ${String(output)}` }]
             : [];
     },
 };

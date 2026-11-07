@@ -152,10 +152,28 @@ async function main(): Promise<void> {
         console.log('[F13] PASS: S3 apply failure correction');
     }
 
-    // S4: correction context is injected into the rendered prompt.
+    // S4: corrections persisted.
     const content = storage.files.get('Agents/Huginn/MEMORY/corrections.md') ?? '';
     assert(content.includes('tag-suggest-test'), 'S4 corrections file should mention recipe');
     console.log('[F13] PASS: S4 corrections persisted');
+
+    // S5: rejection with reason writes a refusal correction.
+    {
+        const freshStorage = new FakeStorage();
+        const freshCorrections = new CorrectionsMemory(freshStorage);
+        const harness = new HuginnHarness({
+            llmClient: new FakeLlmClient(JSON.stringify({ tag: 'new-tag', reason: 'fresh', confidence: 0.8 })),
+            inputGatherer: new ManualInputGatherer(new Map([['targetPath', 'notes/empty.md']])),
+            approvalGate: new StaticApprovalGate(false, 'tag is too vague'),
+            applyRegistry: createDefaultApplyRegistry(createApplyOptionsForFakeApp({ 'notes/empty.md': '' })),
+            corrections: freshCorrections,
+        });
+        await harness.run(recipe, { targetPath: 'notes/empty.md' }, {});
+        const ctx = await freshCorrections.getContext('tag-suggest-test', 5);
+        assert(ctx.text.includes('refusal'), 'S5 should record refusal correction');
+        assert(ctx.text.includes('too vague'), 'S5 should include the rejection reason');
+        console.log('[F13] PASS: S5 rejection reason recorded');
+    }
 
     console.log('[F13] VERDICT: GREEN');
 }

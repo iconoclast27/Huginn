@@ -64,9 +64,9 @@ append-frontmatter-array
 class RecordingApprovalGate implements ApprovalGate {
     request: ApprovalRequest | null = null;
 
-    async approve(request: ApprovalRequest): Promise<boolean | null> {
+    async approve(request: ApprovalRequest): Promise<import('../harness/harness.ts').ApprovalResult | null> {
         this.request = request;
-        return false; // reject for safety; we only inspect the request shape
+        return { approved: false }; // reject for safety; we only inspect the request shape
     }
 }
 

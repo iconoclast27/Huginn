@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { App } from 'obsidian';
-import type { ApprovalGate, ApprovalRequest } from './harness.ts';
+import type { ApprovalGate, ApprovalRequest, ApprovalResult } from './harness.ts';
 import type { AbortSignalLike } from '../llm/client.ts';
 import type { DiffResult } from '../recipes/types.ts';
 import { ApprovalModal } from '../ui/approval-modal.ts';
@@ -15,7 +15,7 @@ import { ApprovalModal } from '../ui/approval-modal.ts';
 export class ObsidianApprovalGate implements ApprovalGate {
     constructor(private app: App) {}
 
-    async approve(request: ApprovalRequest, signal?: AbortSignalLike): Promise<boolean> {
+    async approve(request: ApprovalRequest, signal?: AbortSignalLike): Promise<ApprovalResult | null> {
         let diff: DiffResult;
         try {
             diff = JSON.parse(request.diffText) as DiffResult;
@@ -29,18 +29,20 @@ export class ObsidianApprovalGate implements ApprovalGate {
                 targetPath: request.targetPath ?? '',
                 diff,
                 reason: this.describeOutput(request.output),
-            }, (approved) => {
-                resolve(approved);
+            }, (approved, reason) => {
+                resolve({ approved, reason });
             });
             modal.open();
 
             // If the user clicks Stop while the approval modal is open,
             // close it and treat the request as rejected so the harness
-            // can unwind immediately.
-            signal?.addEventListener('abort', () => {
+            // can unwind immediately. Aborted results are not recorded as
+            // refusals in corrections memory.
+            const onAbort = () => {
                 modal.close();
-                resolve(false);
-            });
+                resolve(null);
+            };
+            signal?.addEventListener('abort', onAbort);
         });
     }
 

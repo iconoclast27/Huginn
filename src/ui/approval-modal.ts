@@ -19,11 +19,11 @@ export interface ApprovalRequest {
 
 export class ApprovalModal extends Modal {
     private request: ApprovalRequest;
-    private onConfirm: (approved: boolean) => void;
+    private onConfirm: (approved: boolean, reason?: string) => void;
     /** The most recently opened approval modal; closed by the Stop button. */
     static activeModal: ApprovalModal | null = null;
 
-    constructor(app: App, request: ApprovalRequest, onConfirm: (approved: boolean) => void) {
+    constructor(app: App, request: ApprovalRequest, onConfirm: (approved: boolean, reason?: string) => void) {
         super(app);
         this.request = request;
         this.onConfirm = onConfirm;
@@ -40,6 +40,11 @@ export class ApprovalModal extends Modal {
     onOpen(): void {
         ApprovalModal.activeModal = this;
         const { contentEl } = this;
+        contentEl.empty();
+        this.renderMainView(contentEl);
+    }
+
+    private renderMainView(contentEl: HTMLElement): void {
         contentEl.empty();
         contentEl.createEl('h2', { text: `Huginn: Approve ${this.request.recipeName}` });
 
@@ -67,8 +72,7 @@ export class ApprovalModal extends Modal {
             .addButton((button) => {
                 button.setButtonText('Reject');
                 button.onClick(() => {
-                    this.close();
-                    this.onConfirm(false);
+                    this.renderReasonView(contentEl);
                 });
             })
             .addButton((button) => {
@@ -77,6 +81,39 @@ export class ApprovalModal extends Modal {
                 button.onClick(() => {
                     this.close();
                     this.onConfirm(true);
+                });
+            });
+    }
+
+    private renderReasonView(contentEl: HTMLElement): void {
+        contentEl.empty();
+        contentEl.createEl('h3', { text: `Why are you rejecting ${this.request.recipeName}?` });
+        contentEl.createEl('p', { text: 'Optional: explain what was wrong so Huginn can learn.' });
+
+        const textarea = contentEl.createEl('textarea', {
+            cls: 'huginn-rejection-reason',
+            attr: { rows: '3', placeholder: 'e.g., wrong tag, unsafe change, ...', style: 'width: 100%;' },
+        });
+
+        const buttonRow = contentEl.createDiv({ cls: 'huginn-approval-buttons' });
+        buttonRow.style.display = 'flex';
+        buttonRow.style.gap = '1em';
+        buttonRow.style.marginTop = '1em';
+
+        new Setting(buttonRow)
+            .addButton((button) => {
+                button.setButtonText('Back');
+                button.onClick(() => {
+                    this.renderMainView(contentEl);
+                });
+            })
+            .addButton((button) => {
+                button.setButtonText('Confirm reject');
+                button.setWarning();
+                button.onClick(() => {
+                    const reason = textarea.value.trim();
+                    this.close();
+                    this.onConfirm(false, reason.length > 0 ? reason : undefined);
                 });
             });
     }

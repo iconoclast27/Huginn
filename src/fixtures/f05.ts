@@ -17,6 +17,8 @@ const EXPECTED_RECIPE_NAMES = [
     'title-suggestion',
     'link-suggestion',
     'task-extraction',
+    'note-summary',
+    'related-notes',
 ];
 
 async function main(): Promise<void> {

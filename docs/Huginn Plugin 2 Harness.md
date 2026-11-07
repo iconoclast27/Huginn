@@ -1,6 +1,6 @@
 # Huginn — Plugin 2 Harness
 
-**Status:** ported to Huginn 2026-11-06  
+**Status:** ported to Huginn 2026-11-07  
 **Scope:** recipe loader, renderer, JSON-schema validator, diff gate, apply registry, LLM client abstraction, harness orchestrator. Consumes the frozen Plugin 1 API via `MuninnApi`.
 
 This harness enforces the project doctrine: **the model judges; the harness acts**. No LLM receives a tool menu. Recipes are declarative Markdown forms with a strict JSON output contract; the harness validates the model's output against schema and (eventually) vault truth before any apply routine runs.
@@ -63,7 +63,7 @@ message: No actionable TODOs found.
 |---------|---------|
 | `metadata` | `name`, `version`, `modelTier` (`fast` \| `capable`), `riskClass` (`read-only` \| `suggest`) |
 | `Trigger` | Human-readable dispatch condition |
-| `Inputs` | List of `{ key, description, source }`. Source may be `query`, `path`, `vocabulary`, `constant`, or `recipe-param`. |
+| `Inputs` | List of `{ key, description, source }`. Source may be `query`, `path`, `vocabulary`, `constant`, `recipe-param`, or `content`. |
 | `Instructions` | Prompt body with `{{key}}` placeholders substituted by the harness |
 | `Output Contract` | JSON Schema object constraining the model's response |
 | `Apply Method` | Name of a harness-registered apply routine. Ships with `noop` for read-only skills and generic write-class primitives: `append-frontmatter-array`, `set-first-heading`, `append-section`. |
@@ -78,9 +78,9 @@ message: No actionable TODOs found.
 3. **Render** — `renderRecipe()` replaces `{{key}}` placeholders and appends the JSON output contract.
 4. **Complete** — `LlmClient.complete(prompt)` returns raw text.
 5. **Parse + schema validate** — output must be valid JSON and match the recipe's output schema. Violations are returned as typed `ValidationError`s.
-6. **Ground-truth validate** — `VaultGroundTruthValidator` checks the output against the actual vault file (e.g., the proposed tag must not already be in the note's frontmatter `tags`).
+6. **Ground-truth validate** — `VaultGroundTruthValidator` checks the output against the actual vault file using registered primitives (e.g., the proposed tag must not already be in the note's frontmatter `tags`). If a validation rule has a `description`, that description is surfaced in the error message shown in chat and console output.
 7. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
-8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**. Recipes with `Apply Method: noop` (read-only skills) skip this step.
+8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target. The user clicks **Approve**, or **Reject** and optionally enters a reason. Rejection reasons are recorded in `corrections.md` as `refusal` entries. Recipes with `Apply Method: noop` (read-only skills) skip this step.
 9. **Apply** — the routine named by `Apply Method` runs only after approval. Generic write-class primitives read their parameters from `# Apply Params`. The model cannot invoke routines directly. Read-only skills do not run an apply routine.
 10. **Learn** — if a `CorrectionsMemory` is configured, schema errors, apply failures, and rejected suggestions are appended to `Agents/Huginn/MEMORY/corrections.md`. Recent corrections are injected into the dispatcher prompt and the recipe prompt so the model is less likely to repeat the mistake. Ground-truth failures are *not* written to corrections: a duplicate tag or existing file is vault state, not a model mistake.
 
@@ -131,6 +131,10 @@ message: No actionable TODOs found.
 | `src/fixtures/f18.ts` | Legacy `source`/`check` validation format is rejected |
 | `src/fixtures/f19.ts` | `MuninnApiInputGatherer` normalizes missing `.md` suffix on note paths |
 | `src/fixtures/f20.ts` | `append-frontmatter-array` accepts a single value or an array of values |
+| `src/fixtures/f21.ts` | `note-summary` read-only recipe end-to-end |
+| `src/fixtures/f22.ts` | `related-notes` read-only recipe end-to-end |
+| `src/fixtures/f23.ts` | `task-extraction` uses the chat `verbosity` setting to tune output detail |
+| `src/fixtures/f24.ts` | Built-in `note-contains-text` and `note-not-contains-text` ground-truth primitives |
 
 ## Memory system
 
@@ -144,7 +148,7 @@ Three memory kinds share the same underlying `VaultMemoryStore`:
 | **User memory** | `user-memory.md` | chat UI | chat system prompt | Things the user explicitly told Huginn to remember |
 | **Chat summary** | `chat-summaries.md` | chat UI "Remember chat" button | chat system prompt | Condensed history from long conversations |
 
-Corrections are appended when: the model returns JSON that fails schema validation; an apply routine fails; or the user rejects a suggestion in the approval gate. Each entry records the recipe name, failure type, affected key/value, and a short note. Recent corrections are injected into the dispatcher system prompt and into the recipe prompt before the model runs.
+Corrections are appended when: the model returns JSON that fails schema validation; an apply routine fails; or the user rejects a suggestion in the approval gate (including the optional rejection reason). Each entry records the recipe name, failure type, affected key/value, and a short note. Recent corrections are injected into the dispatcher system prompt and into the recipe prompt before the model runs.
 
 Ground-truth failures (e.g., a proposed tag already exists, or a file to create already exists) are reported to the user as vault state, not as model mistakes, and are not written to corrections. In the chat path this means the assistant says "already present — no change needed" rather than retrying.
 
@@ -156,10 +160,11 @@ Chat summaries are appended when the user clicks the **Remember chat** button in
 
 The harness lives as a private `HuginnHarness` property on `HuginnPlugin` in `src/main.ts`. It discovers Muninn via `app.plugins.plugins['muninn'].getMuninnApi()`, polling until the API door is ready.
 
-Two commands are registered:
+Three commands are registered:
 
 - **"Huginn: Run Huginn skill"** opens a modal (`src/ui/recipe-modal.ts`) that lets the user pick a recipe and enter a target note path, then logs the `RecipeRunResult` to the console.
 - **"Huginn: Open Huginn chat"** opens `HuginnChatView` in the right sidebar with a fresh `ChatController` backed by the same `OllamaChatClient` instance used by the harness. A message-square ribbon icon is also registered.
+- **"Huginn: Install default Huginn skills"** seeds `Agents/Huginn/SKILLS/` with the bundled recipes on first run. **"Huginn: Reset default Huginn skills"** force-overwrites the same files to recover from stale or hand-edited recipes.
 
 ## Model warmup
 
@@ -175,7 +180,7 @@ The chat path is intentionally minimal in this first cut. It is not a recipe; it
 4. **Persistence across sidebar close/reopen.** The view implements `getState`/`setState` so Obsidian restores the sidebar layout, but Huginn intentionally resets both the message history and the active note path on reload/workspace restore to avoid stale context. The active note is always re-read from Obsidian's current workspace. Clicking **Refresh context** updates the system context to the currently active note without clearing the conversation history.
 5. **Skill dispatch.** When the user sends a message, `ChatSkillDispatcher` asks the model to pick a recipe and a target note path. If a valid recipe is selected, `HuginnHarness.run()` executes it and the result is rendered in the chat. If no recipe matches, the message falls back to a plain chat completion.
 6. **Ground-truth reporting in chat.** If a dispatched skill fails ground-truth validation, the chat UI explains that the suggestion is already present in the vault and that no change is needed. It does not retry, because a duplicate tag or existing file is vault state rather than a model mistake.
-7. **Read-only skills inline.** Recipes with `Apply Method: noop` skip the approval gate. Their structured output is rendered as a friendly inline message: `task-extraction` shows a numbered TODO list generated from the note.
+7. **Read-only skills inline.** Recipes with `Apply Method: noop` skip the approval gate. Their structured output is rendered as a friendly inline message: `task-extraction` shows a numbered TODO list, `note-summary` shows a paragraph summary, and `related-notes` shows a bulleted list of vault paths. The chat passes the current `reportBackVerbosity` setting to `task-extraction` so verbose mode can request rationales.
 8. **No RAG yet.** The chat does not inject vault-wide search results; skill dispatch uses the recipe's own input gatherer for vocabulary/related content.
 
 ## What is owed
@@ -192,5 +197,9 @@ The chat path is intentionally minimal in this first cut. It is not a recipe; it
 - ✅ Corrections notebook wiring into dispatcher, recipe prompts, and failure/rejection paths.
 - ✅ Explicit user memory commands parsed in chat and injected into the chat system prompt.
 - ✅ Chat-summary "Remember chat content" button that summarizes the conversation and injects saved summaries into future chat prompts.
+- ✅ Default recipe install/reset commands seeded from bundled recipes.
+- ✅ Read-only `note-summary` and `related-notes` recipes for inline chat use.
+- ✅ `task-extraction` verbosity input driven by the chat `reportBackVerbosity` setting.
+- ✅ Ground-truth checks as fully API-style primitives with `description` surfaced in error messages.
+- ✅ Additional built-in ground-truth primitives: `note-contains-text`, `note-not-contains-text`.
 - Richer chat context (linked/related notes, full vault RAG) — deferred until active-note smoke test passes.
-- Ground-truth checks as fully API-style primitives — deferred until a new recipe needs a check not covered by the current subset.

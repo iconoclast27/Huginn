@@ -314,7 +314,12 @@ export class HuginnChatView extends ItemView {
         }
 
         const targetPath = normalizeNotePath(intent.targetPath);
-        const result = await harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {}, this.abortController?.signal);
+        const result = await harness.run(
+            recipe,
+            { targetPath, titleQuery: recipe.metadata.name, verbosity: this.verbosity },
+            {},
+            this.abortController?.signal,
+        );
 
         if (!result.schemaValid) {
             const msg = result.schemaErrors.map((e) => e.message).join('; ');
@@ -334,21 +339,6 @@ export class HuginnChatView extends ItemView {
     }
 
     private async renderRunResult(recipe: LoadedRecipe, result: RecipeRunResult): Promise<void> {
-        // User rejected the suggestion in the approval gate.
-        if (result.approved === false && result.applyResult === null) {
-            const corrections = this.services.getMemory?.().corrections ?? null;
-            if (corrections) {
-                await corrections.append({
-                    recipe: recipe.metadata.name,
-                    type: 'refusal',
-                    key: 'user rejected suggestion',
-                    note: 'User rejected the suggested change via the approval gate.',
-                });
-            }
-            this.renderMessage('assistant', 'Skill suggestion was rejected.');
-            return;
-        }
-
         if (recipe.applyMethod === 'noop') {
             this.renderReadOnlyResult(recipe, result);
             return;

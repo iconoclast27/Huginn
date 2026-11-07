@@ -1,4 +1,4 @@
-# Huginn Smoke Test Scenario v0.1.0-test.17
+# Huginn Smoke Test Scenario v0.1.0-test.18
 
 ## Environment
 
@@ -7,24 +7,24 @@
 - A chat-capable model pulled, e.g. `qwen2.5:14b` or `qwen3.5:4b`.
 - Muninn `0.2.0-test.15` (or later) installed and enabled.
 - Vault already indexed by Muninn (run **Muninn: Force reindex vault** if unsure).
-- Huginn `0.1.0-test.17` installed via BRAT.
+- Huginn `0.1.0-test.18` installed via BRAT.
 
 ## Install Huginn via BRAT
 
 1. Install the BRAT plugin in Obsidian if it is not already installed.
 2. Open **Obsidian Settings → Community Plugins → BRAT**.
-3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.17`.
+3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.18`.
 4. Enable the **Huginn** plugin in Obsidian settings.
 5. Reload Obsidian if prompted.
 6. Wait for Muninn's initial reindex to complete before testing Huginn.
 
 ## Install default Huginn skills
 
-Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if the recipes are missing or stale:
+Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first run. If the recipes are missing or stale:
 
 1. Open the Obsidian command palette.
-2. Run **Huginn: Install default Huginn skills**.
-3. If you already have old recipe files and want to replace them, delete them first or run the command after removing stale files.
+2. Run **Huginn: Install default Huginn skills** to create missing recipe files.
+3. Run **Huginn: Reset default Huginn skills** to force-overwrite existing recipe files with the bundled versions.
 
 ## Configure Huginn
 
@@ -38,8 +38,8 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 ## Place skill recipes
 
 1. Run **Huginn: Install default Huginn skills** from the command palette.
-2. Verify the folder `Agents/Huginn/SKILLS/` now contains `tag-assignment.md`, `title-suggestion.md`, `link-suggestion.md`, and `task-extraction.md`.
-3. If you previously had old recipe files, delete them first so the installer can write fresh copies.
+2. Verify the folder `Agents/Huginn/SKILLS/` now contains `tag-assignment.md`, `title-suggestion.md`, `link-suggestion.md`, `task-extraction.md`, `note-summary.md`, and `related-notes.md`.
+3. If you previously had old recipe files, run **Huginn: Reset default Huginn skills** to replace them with the bundled versions.
 
 ## Scenario A: Huginn harness discovers Muninn
 
@@ -82,8 +82,9 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 - [ ] `schemaValid: true` and `schemaErrors: []`.
 - [ ] `parsedOutput.json` contains `tag`, `reason`, and `confidence` fields.
 - [ ] `groundTruthValid: true` when the proposed tag is **not** already in the target note's frontmatter `tags`.
-- [ ] If the note already has the proposed tag, `groundTruthValid: false` and `groundTruthErrors` explains the conflict.
-- [ ] When you click **Reject** in the approval modal, `applyResult.applied: false` and `applyResult.message` contains `"Rejected by approval gate."`.
+- [ ] If the note already has the proposed tag, `groundTruthValid: false` and `groundTruthErrors` explains the conflict using the recipe's rule `description`.
+- [ ] When you click **Reject** in the approval modal, you are optionally asked for a reason.
+- [ ] `applyResult.applied: false` and `applyResult.message` reflects the rejection reason if you provided one, or `"Rejected by approval gate."` if not.
 - [ ] When you click **Approve** in the approval modal, `applyResult.applied: true` and `applyResult.message` indicates the file was modified.
 - [ ] The target note's frontmatter now includes the proposed tag under `tags`. If the note had no frontmatter, a new frontmatter block is created through Obsidian's normal frontmatter mechanism.
 - [ ] A `refusal` entry is appended to `Agents/Huginn/MEMORY/corrections.md` if you rejected the suggestion.
@@ -149,7 +150,9 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 - [ ] Clicking **Refresh context** re-reads the active note and updates the system context without clearing the conversation history.
 - [ ] Switching to a different note updates the active-note context line in the header.
 - [ ] Typing a skill request (e.g. `tag this note`) triggers a second `POST /api/chat` dispatch call, then runs the matching skill and shows its result in the chat.
-- [ ] Read-only skill (**task-extraction**) generates a TODO list from the note and returns it directly in the chat without opening the approval modal.
+- [ ] Read-only skills (**task-extraction**, **note-summary**, **related-notes**) render their output directly in the chat without opening the approval modal.
+- [ ] **note-summary** returns a concise paragraph summary of the active note.
+- [ ] **related-notes** returns a bulleted list of up to five existing vault note paths related to the active note.
 - [ ] Write-class skills (tag, title, links) still open the existing approval modal; approving applies the change and the chat shows the apply result.
 - [ ] **title-suggestion** sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter if necessary.
 - [ ] **tag-assignment** adds the proposed tag to frontmatter `tags`, creating frontmatter through Obsidian's normal frontmatter mechanism if necessary.
@@ -219,18 +222,19 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 
 ### Conditions
 - Scenario A passed.
-- All four shipped recipes are present.
+- All six shipped recipes are present.
 
 ### Steps
 1. Open **Huginn Settings** and set **Report-back verbosity** to `verbose`.
-2. Run a write-class skill from chat (e.g. `suggest tags for notes/gamma.md`).
+2. In chat, run a read-only skill whose output varies with verbosity: `extract tasks from notes/gamma.md`.
 3. Set **Report-back verbosity** to `minimal`.
-4. Run the same skill request again.
+4. Run the same request again.
 
 ### Expected results
-- [ ] In `verbose` mode the chat shows status messages like `Running tag-assignment on notes/gamma.md...`.
+- [ ] In `verbose` mode the chat shows a status message like `Running task-extraction on notes/gamma.md...`.
+- [ ] In `verbose` mode the returned TODOs include short parenthetical rationales because `task-extraction` receives `verbosity: verbose`.
 - [ ] In `minimal` mode the status message is suppressed; only the final result or failure is shown.
-- [ ] Use `tag-assignment` (not `suggest-tags`, which is no longer shipped) for this test.
+- [ ] In `minimal` mode the returned TODOs do not include rationales.
 
 ## Scenario J: Corrections after failure
 
@@ -246,14 +250,33 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 
 ### Expected results
 - [ ] The recipe result from the command-modal run shows `groundTruthValid: false` because the tag already exists.
+- [ ] `groundTruthErrors` includes the recipe's rule `description`: `The proposed tag must not already be in the target note's frontmatter tags: value already present in frontmatter key 'tags'`.
 - [ ] `corrections.md` does **not** gain a ground-truth entry; a duplicate tag is vault state, not a model mistake.
 - [ ] In chat, when the same request triggers the same ground-truth failure, the assistant explains that the suggestion is already present and that no change is needed.
 - [ ] Huginn does **not** retry the failed ground-truth check or loop indefinitely.
 
+## Scenario K: Reset default Huginn skills
+
+### Conditions
+- Scenario A passed.
+- `Agents/Huginn/SKILLS/` contains at least one recipe file.
+
+### Steps
+1. Open `Agents/Huginn/SKILLS/tag-assignment.md` and note its current content.
+2. Modify the file in Obsidian (for example, add a stray line at the top).
+3. Open the command palette and run **Huginn: Reset default Huginn skills**.
+4. Reload the recipe file in Obsidian (or reopen it).
+
+### Expected results
+- [ ] A notice appears summarizing the reset: `Huginn default skills: 6 overwritten`.
+- [ ] `tag-assignment.md` is restored to the bundled content.
+- [ ] `Agents/Huginn/SKILLS/` still contains all six bundled recipes.
+- [ ] Running **Huginn: Run Huginn skill** still works without parse errors.
+
 ## Known limitations
 
-- v0.1.0-test.17 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction** is read-only and returns inline in chat.
-- Ground-truth validation ships with four built-in primitives (`file-exists`, `file-not-exists`, `frontmatter-contains`, `frontmatter-not-contains`) and can be extended by registering new primitives.
+- v0.1.0-test.18 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction**, **note-summary**, and **related-notes** are read-only and return inline in chat.
+- Ground-truth validation ships with six built-in primitives (`file-exists`, `file-not-exists`, `frontmatter-contains`, `frontmatter-not-contains`, `note-contains-text`, `note-not-contains-text`) and can be extended by registering new primitives. Recipe `description` fields are surfaced in ground-truth error messages.
 - Title suggestion sets or replaces the first `# ` heading in the note body and also sets the `title` frontmatter property; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
 - Chat uses **active-note context only** for plain chat responses. Skill dispatch sends a separate dispatch request to decide which recipe to run; the recipe itself then gathers its own inputs.
