@@ -239,9 +239,12 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 5. Try the same request again in chat.
 
 ### Expected results
-- [ ] The recipe result shows `groundTruthValid: false` because the tag already exists.
+- [ ] The recipe result from the command-modal run shows `groundTruthValid: false` because the tag already exists.
 - [ ] `corrections.md` gains an entry with `type: ground-truth` referencing `tag-assignment`.
-- [ ] On the second attempt, the model receives the correction context and should propose a different tag.
+- [ ] In chat, when the same request triggers the same ground-truth failure, Huginn automatically retries **once**.
+- [ ] The assistant tells the user the first suggestion failed a vault check and that it is trying again.
+- [ ] If the retry passes, the chat shows the final applied/read-only result.
+- [ ] If the retry also fails, the assistant reports the second failure and stops; it does not loop forever.
 
 ## Known limitations
 
@@ -252,7 +255,7 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 - Chat uses **active-note context only** for plain chat responses. Skill dispatch sends a separate dispatch request to decide which recipe to run; the recipe itself then gathers its own inputs.
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
 - Huginn watches `Agents/Huginn/SKILLS/` for recipe file changes; if you replace a recipe, the new version is loaded without reloading Obsidian.
-- Non-streaming Ollama `/api/chat` may take a moment to honor an abort request; the Stop button signals abort immediately, but the underlying HTTP call may still return if Ollama has already generated the response.
+- Chat now streams the Ollama `/api/chat` response, so the **Stop** button can interrupt an in-flight generation promptly.
 
 ## What to capture when reporting results
 

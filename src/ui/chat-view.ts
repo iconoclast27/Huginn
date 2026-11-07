@@ -306,10 +306,32 @@ export class HuginnChatView extends ItemView {
         }
         if (!result.groundTruthValid) {
             const msg = result.groundTruthErrors.map((e) => e.message).join('; ');
-            this.renderMessage('assistant', `Ground-truth check failed: ${msg}`);
+            // Write a correction so the retry has context, then attempt once more.
+            const corrections = this.services.getMemory?.().corrections ?? null;
+            if (corrections) {
+                await corrections.append({
+                    recipe: recipe.metadata.name,
+                    type: 'ground-truth',
+                    key: msg.slice(0, 120),
+                    note: `Ground-truth check failed: ${msg}`,
+                });
+            }
+            this.renderMessage('assistant', `First suggestion failed a vault check (${msg}). Trying again...`);
+            const retry = await harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {}, this.abortController?.signal);
+            if (!retry.groundTruthValid) {
+                const retryMsg = retry.groundTruthErrors.map((e) => e.message).join('; ');
+                this.renderMessage('assistant', `I had to try again, but the second attempt also failed a vault check: ${retryMsg}`);
+                return;
+            }
+            // Fall through to render the retry result.
+            await this.renderRunResult(recipe, retry);
             return;
         }
 
+        await this.renderRunResult(recipe, result);
+    }
+
+    private async renderRunResult(recipe: LoadedRecipe, result: RecipeRunResult): Promise<void> {
         // User rejected the suggestion in the approval gate.
         if (result.approved === false && result.applyResult === null) {
             const corrections = this.services.getMemory?.().corrections ?? null;

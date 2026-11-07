@@ -78,7 +78,7 @@ export class OllamaChatClient implements ChatLlmClient {
                 body: JSON.stringify({
                     model: this.opts.model,
                     messages,
-                    stream: false,
+                    stream: true,
                     // Do not send "format": "json" — Ollama versions vary in how they
                     // validate it, and the recipe's system prompt already demands raw JSON.
                 }),
@@ -95,8 +95,7 @@ export class OllamaChatClient implements ChatLlmClient {
                 console.warn('[Huginn] Ollama chat HTTP', res.status, body.slice(0, 1000));
                 return null;
             }
-            const data = (await res.json()) as { message?: { content?: string } };
-            return stripJsonFences(data.message?.content?.trim() ?? '');
+            return await this.readStreamingResponse(res, signal);
         } catch (e) {
             if ((e as Error).name === 'AbortError') {
                 if (signal?.aborted) {
@@ -114,6 +113,40 @@ export class OllamaChatClient implements ChatLlmClient {
             signal?.removeEventListener('abort', onExternalAbort);
             clearTimeout(timeout);
         }
+    }
+
+    private async readStreamingResponse(res: Response, signal?: AbortSignalLike): Promise<string | null> {
+        if (!res.body) return null;
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let content = '';
+        try {
+            while (true) {
+                if (signal?.aborted) {
+                    await reader.cancel();
+                    return null;
+                }
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                for (const line of chunk.split('\n')) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+                    try {
+                        const data = JSON.parse(trimmed) as { message?: { content?: string }; done?: boolean };
+                        if (data.message?.content) {
+                            content += data.message.content;
+                        }
+                        if (data.done) break;
+                    } catch {
+                        // Ignore malformed streaming lines.
+                    }
+                }
+            }
+        } finally {
+            reader.releaseLock();
+        }
+        return stripJsonFences(content.trim());
     }
 }
 
