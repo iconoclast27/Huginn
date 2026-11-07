@@ -212,19 +212,15 @@ function parseValidationSection(text: string | undefined, errors: string[]): Rec
     const rules: RecipeValidationRule[] = [];
     const entries = splitYamlList(text);
     for (const entry of entries) {
+        const primitive = extractYamlField(entry, 'primitive');
         const path = extractYamlField(entry, 'path');
-        const source = extractYamlField(entry, 'source') as RecipeValidationRule['source'] | undefined;
-        const check = extractYamlField(entry, 'check') as RecipeValidationRule['check'] | undefined;
-        if (!path || !source || !check) {
-            errors.push(`Invalid validation entry: ${entry.slice(0, 40)}`);
+        const description = extractYamlField(entry, 'description');
+        if (extractYamlField(entry, 'source') || extractYamlField(entry, 'check')) {
+            errors.push(`Validation uses deprecated 'source'/'check' fields; use 'primitive' instead: ${entry.slice(0, 60)}`);
             continue;
         }
-        if (source !== 'vault-file') {
-            errors.push(`Unsupported validation source '${source}' for ${path}`);
-            continue;
-        }
-        if (!['exists', 'not-exists', 'matches-frontmatter', 'not-in-frontmatter'].includes(check)) {
-            errors.push(`Unsupported validation check '${check}' for ${path}`);
+        if (!primitive || !path) {
+            errors.push(`Invalid validation entry (missing primitive or path): ${entry.slice(0, 60)}`);
             continue;
         }
         const paramsText = extractYamlField(entry, 'params');
@@ -237,7 +233,10 @@ function parseValidationSection(text: string | undefined, errors: string[]): Rec
                 continue;
             }
         }
-        rules.push({ path, source, check, params });
+        const rule: RecipeValidationRule = { primitive, path };
+        if (description) rule.description = description;
+        if (Object.keys(params).length > 0) rule.params = params;
+        rules.push(rule);
     }
     return rules;
 }

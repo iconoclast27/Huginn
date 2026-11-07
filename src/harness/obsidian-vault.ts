@@ -21,4 +21,16 @@ export class ObsidianVaultReader implements VaultReader {
         const cache = this.app.metadataCache.getFileCache(file);
         return (cache?.frontmatter as Record<string, unknown>) ?? {};
     }
+
+    async readFile(path: string): Promise<string | null> {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (!file || !(file instanceof TFile)) {
+            return null;
+        }
+        try {
+            return await this.app.vault.cachedRead(file);
+        } catch {
+            return null;
+        }
+    }
 }

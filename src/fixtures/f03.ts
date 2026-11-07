@@ -9,7 +9,7 @@
 // Run: npx tsx src/fixtures/f03.ts
 // =============================================================================
 
-import { VaultGroundTruthValidator, type VaultReader } from '../harness/ground-truth.ts';
+import { VaultGroundTruthValidator, createDefaultGroundTruthRegistry, type VaultReader } from '../harness/ground-truth.ts';
 import { parseRecipe } from '../recipes/parser.ts';
 import type { GatheredInput, LoadedRecipe } from '../recipes/types.ts';
 
@@ -53,9 +53,8 @@ append-frontmatter-array
 }
 
 # Validation
-- path: /tag
-  source: vault-file
-  check: not-in-frontmatter
+- primitive: frontmatter-not-contains
+  path: /tag
   params: {"key":"tags"}
 `;
 
@@ -64,6 +63,10 @@ class FakeVaultReader implements VaultReader {
 
     getFileFrontmatter(path: string): Record<string, unknown> | null {
         return this.files.get(path) ?? null;
+    }
+
+    async readFile(_path: string): Promise<string | null> {
+        return null;
     }
 }
 
@@ -90,7 +93,7 @@ async function main(): Promise<void> {
         ['notes/single-tag.md', { tags: 'taxonomy' }],
     ]));
 
-    const validator = new VaultGroundTruthValidator(vault);
+    const validator = new VaultGroundTruthValidator(createDefaultGroundTruthRegistry(), vault);
 
     // Case 1: proposed tag not present -> valid.
     const r1 = await validator.validate(recipe, inputsFor('notes/empty.md'), { tag: 'new-tag', reason: 'fresh', confidence: 0.8 });

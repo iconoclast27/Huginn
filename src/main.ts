@@ -14,7 +14,7 @@ import { HuginnHarness } from './harness/harness.ts';
 import { ObsidianApprovalGate } from './harness/approval-gate.ts';
 import { MuninnApiInputGatherer } from './harness/gather.ts';
 import { createDefaultApplyRegistry } from './harness/apply.ts';
-import { VaultGroundTruthValidator } from './harness/ground-truth.ts';
+import { VaultGroundTruthValidator, createDefaultGroundTruthRegistry } from './harness/ground-truth.ts';
 import { ObsidianVaultReader } from './harness/obsidian-vault.ts';
 import { ObsidianMemoryStorage } from './memory/obsidian-storage.ts';
 import { CorrectionsMemory, UserMemory, ChatSummaryMemory } from './memory/kinds.ts';
@@ -113,7 +113,10 @@ export default class HuginnPlugin extends Plugin {
                     inputGatherer: new MuninnApiInputGatherer({ api, app: this.app }),
                     approvalGate: new ObsidianApprovalGate(this.app),
                     applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
-                    groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
+                    groundTruthValidator: new VaultGroundTruthValidator(
+                        createDefaultGroundTruthRegistry(),
+                        new ObsidianVaultReader(this.app),
+                    ),
                     corrections: this.correctionsMemory,
                 });
                 // Ensure default recipes are seeded on first run so users do not
@@ -237,7 +240,10 @@ export default class HuginnPlugin extends Plugin {
                 inputGatherer: new MuninnApiInputGatherer({ api, app: this.app }),
                 approvalGate: new ObsidianApprovalGate(this.app),
                 applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
-                groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
+                groundTruthValidator: new VaultGroundTruthValidator(
+                    createDefaultGroundTruthRegistry(),
+                    new ObsidianVaultReader(this.app),
+                ),
                 corrections,
             });
         }

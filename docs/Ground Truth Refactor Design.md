@@ -2,7 +2,7 @@
 
 ## Status
 
-Design draft for review. Not yet implemented. The goal is to replace the closed `switch` statement in `VaultGroundTruthValidator` with a registry of small, composable, recipe-addressable primitives, so new checks can be added by registering a function rather than editing a central validator.
+Implemented in `main`. The closed `switch` statement in `VaultGroundTruthValidator` has been replaced with a `GroundTruthRegistry` of named primitives. New checks are added by registering a function; shipped recipes and fixtures use the new `primitive` format.
 
 ## Current state
 
@@ -194,25 +194,46 @@ registry.register({
 
 This may require widening `VaultReader` to include file-body reads.
 
-## Open questions
+## Decisions
 
-1. Should the `VaultReader` interface gain a `readFile(path): string | null` method so primitives can inspect note bodies, or keep ground-truth scoped to frontmatter and file existence?
-2. Should primitives be async? All current checks are synchronous, but index-backed semantic checks may need async later.
-3. Should recipe validation rules carry an optional `description` so the approval modal can explain why a check failed in friendlier prose?
-4. Is the `source` field worth preserving for non-vault primitives, or should every primitive fully own its data source?
+1. `VaultReader` will gain `readFile(path): string | null` so primitives can inspect note bodies.
+2. Primitive `validate` will be async now, even though current checks are synchronous, so future index-backed or semantic checks do not require a breaking interface change.
+3. Validation rules will carry an optional `description` field so the approval/chat UI can explain checks in recipe-authored prose.
+4. The `source` field will be dropped entirely. Each primitive owns its data source; non-vault sources can later be encoded in the primitive name (e.g. `muninn:related-note-exists`).
+
+The legacy `source`+`check` format will **not** be supported in the release that ships this refactor. Shipped recipes and fixtures migrate to the new format in the same change.
 
 ## Compatibility
 
 - `RecipeRunResult.groundTruthValid` / `groundTruthErrors` remain unchanged.
-- Fixtures F03 and F08 will need their recipe YAML updated and a legacy-parser test added.
+- Fixtures F03 and F08 will need their recipe YAML updated to the new format.
 - No change to the Muninn API.
+- Existing user-authored recipes using the old `source`+`check` format will fail to parse after this release. This is acceptable because Huginn has not yet documented a stable recipe contract and the shipped recipes are the de facto reference.
 
 ## Files to touch
 
-- `src/recipes/types.ts` — add `primitive` to `RecipeValidationRule`, deprecate `source`/`check`.
-- `src/recipes/parser.ts` — parse `primitive`, support legacy `source`+`check` mapping.
+- `src/recipes/types.ts` — replace `source`/`check` with `primitive`; add optional `description`.
+- `src/recipes/parser.ts` — parse `primitive` and `description`; reject legacy `source`/`check`.
 - `src/harness/ground-truth.ts` — add `GroundTruthPrimitive`, `GroundTruthRegistry`, rewrite validator to dispatch.
+- `src/harness/obsidian-vault.ts` — implement `readFile` on `ObsidianVaultReader`.
 - `src/main.ts` — construct registry with defaults and pass to `VaultGroundTruthValidator`.
 - `src/recipes/tag-assignment.md`, `title-suggestion.md`, `link-suggestion.md` — migrate validation sections.
-- `src/fixtures/f03.ts`, `f08.ts` — update recipes and add legacy-mapping assertion.
+- `src/fixtures/f03.ts`, `f08.ts` — update recipes to new format.
 - `docs/Huginn Plugin 2 Harness.md` — update `# Validation` field reference.
+
+## Example primitive using note body
+
+```typescript
+const noteContainsTextPrimitive: GroundTruthPrimitive = {
+  name: 'note-contains-text',
+  async validate({ vault, output, inputs }, params) {
+    const targetPath = findInputString(inputs, String(params.targetPathInput ?? 'targetPath'));
+    if (!targetPath) return [{ path: '/', message: 'missing targetPath' }];
+    const content = vault.readFile?.(targetPath);
+    if (typeof content !== 'string') return [{ path: '/', message: 'could not read file' }];
+    const needle = String(output);
+    return content.includes(needle) ? []
+      : [{ path: '/', message: `note does not contain ${needle}` }];
+  },
+};
+```

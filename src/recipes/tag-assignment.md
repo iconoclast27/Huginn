@@ -70,7 +70,7 @@ append-frontmatter-array
 }
 
 # Validation
-- path: /tag
-  source: vault-file
-  check: not-in-frontmatter
+- primitive: frontmatter-not-contains
+  path: /tag
+  description: The proposed tag must not already be in the target note's frontmatter tags.
   params: {"key":"tags"}

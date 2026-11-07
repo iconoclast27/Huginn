@@ -10,7 +10,7 @@
 // =============================================================================
 
 import { HuginnHarness, ManualInputGatherer, StaticApprovalGate } from '../harness/harness.ts';
-import { VaultGroundTruthValidator, type VaultReader } from '../harness/ground-truth.ts';
+import { VaultGroundTruthValidator, createDefaultGroundTruthRegistry, type VaultReader } from '../harness/ground-truth.ts';
 import { FakeLlmClient } from '../llm/client.ts';
 import { createDefaultApplyRegistry } from '../harness/apply.ts';
 import { parseRecipe } from '../recipes/parser.ts';
@@ -80,9 +80,8 @@ append-frontmatter-array
 }
 
 # Validation
-- path: /tag
-  source: vault-file
-  check: not-in-frontmatter
+- primitive: frontmatter-not-contains
+  path: /tag
   params: {"key":"tags"}
 `;
 
@@ -118,13 +117,16 @@ async function main(): Promise<void> {
                 if (path === 'notes/tagged.md') return { tags: ['existing'] };
                 return null;
             },
+            async readFile(_path: string) {
+                return null;
+            },
         };
         const harness = new HuginnHarness({
             llmClient: new FakeLlmClient(JSON.stringify({ tag: 'existing', reason: 'already there', confidence: 0.9 })),
             inputGatherer: new ManualInputGatherer(new Map([['targetPath', 'notes/tagged.md']])),
             approvalGate: new StaticApprovalGate(true),
             applyRegistry: createDefaultApplyRegistry(createApplyOptionsForFakeApp({ 'notes/tagged.md': '---\ntags:\n  - existing\n---\nBody.' })),
-            groundTruthValidator: new VaultGroundTruthValidator(vaultReader),
+            groundTruthValidator: new VaultGroundTruthValidator(createDefaultGroundTruthRegistry(), vaultReader),
             corrections,
         });
         await harness.run(recipe, { targetPath: 'notes/tagged.md' }, {});

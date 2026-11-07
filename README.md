@@ -34,7 +34,7 @@ The production bundle is written to `main.js`.
 npm run fixtures
 ```
 
-Runs F01–F15, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, chat skill-dispatch intent parsing, vault memory store, corrections wiring, user memory commands, and chat summary memory.
+Runs F01–F18, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, chat skill-dispatch intent parsing, vault memory store, corrections wiring, user memory commands, chat summary memory, default recipe install, ground-truth primitive registry, and legacy-format rejection.
 
 ## Commands
 

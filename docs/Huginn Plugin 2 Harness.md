@@ -51,9 +51,9 @@ field: todos
 message: No actionable TODOs found.
 
 # Validation
-- path: /tag
-  source: vault-file
-  check: not-in-frontmatter
+- primitive: frontmatter-not-contains
+  path: /tag
+  description: The proposed tag must not already be in the target note's frontmatter tags.
   params: {"key":"tags"}
 ```
 
@@ -69,7 +69,7 @@ message: No actionable TODOs found.
 | `Apply Method` | Name of a harness-registered apply routine. Ships with `noop` for read-only skills and generic write-class primitives: `append-frontmatter-array`, `set-first-heading`, `append-section`. |
 | `Apply Params` | Optional JSON object consumed by generic apply routines (e.g., `{"key": "tags", "valuePath": "tag"}`). |
 | `Chat Render` | Optional read-only rendering hint for the chat sidebar (`paragraph`, `numbered-list`, `bulleted-list`, `json`). |
-| `Validation` | Ground-truth checks against vault state via `VaultGroundTruthValidator` (`vault-file` source) |
+| `Validation` | Ground-truth checks via registered primitives in `GroundTruthRegistry` |
 
 ## Harness flow
 
@@ -99,7 +99,7 @@ message: No actionable TODOs found.
 | `src/llm/client.ts` | `LlmClient` / `ChatLlmClient` interfaces + `OllamaChatClient` with response-body logging |
 | `src/harness/harness.ts` | `HuginnHarness` orchestrator |
 | `src/harness/gather.ts` | `MuninnApiInputGatherer` |
-| `src/harness/ground-truth.ts` | `VaultGroundTruthValidator` + fake-friendly `VaultReader` interface |
+| `src/harness/ground-truth.ts` | `GroundTruthRegistry`, `GroundTruthPrimitive`, `VaultGroundTruthValidator`, and fake-friendly `VaultReader` interface |
 | `src/harness/obsidian-vault.ts` | `ObsidianVaultReader` backed by Obsidian's metadata cache |
 | `src/harness/approval-gate.ts` | `ObsidianApprovalGate` that opens `ApprovalModal` |
 | `src/ui/approval-modal.ts` | Modal UI for diff review and approve/reject |
@@ -127,6 +127,8 @@ message: No actionable TODOs found.
 | `src/fixtures/f14.ts` | User memory command parsing and context framing |
 | `src/fixtures/f15.ts` | Chat summary memory: append, summarize, and prompt injection |
 | `src/fixtures/f16.ts` | Default recipe installer seeds `Agents/Huginn/SKILLS/` |
+| `src/fixtures/f17.ts` | Ground-truth primitive registry accepts custom primitives |
+| `src/fixtures/f18.ts` | Legacy `source`/`check` validation format is rejected |
 
 ## Memory system
 

@@ -78,13 +78,13 @@ export type JsonSchema =
     | JsonObjectSchema;
 
 export interface RecipeValidationRule {
+    /** Registered ground-truth primitive that performs the check. */
+    primitive: string;
     /** JSON pointer path inside the output object to check. */
     path: string;
-    /** Ground-truth source. Currently only 'vault-file' is supported. */
-    source: 'vault-file';
-    /** What to check against disk. */
-    check: 'exists' | 'not-exists' | 'matches-frontmatter' | 'not-in-frontmatter';
-    /** Optional parameters for the check. */
+    /** Optional human-readable explanation of the check, shown in approval/chat UI. */
+    description?: string;
+    /** Optional parameters for the primitive. */
     params?: Record<string, unknown>;
 }
 
