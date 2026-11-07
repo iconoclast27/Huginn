@@ -216,13 +216,14 @@ export default class HuginnPlugin extends Plugin {
             model: this.settings.ollamaChatModel,
             timeoutMs: this.settings.chatTimeoutMs,
         });
-        // Recipes are loaded asynchronously after view registration; pass a live getter
-        // so the chat dispatcher and skill lookup always use the current catalog.
+        // Recipes and harness are assigned asynchronously after view registration;
+        // pass live getters so restored views pick them up once initialization finishes.
         const getRecipes = () => this.recipes;
+        const getHarness = () => this.harness;
         return {
             controller: new ChatController({ app: this.app, llmClient }),
             dispatcher: new ChatSkillDispatcher({ llmClient, getRecipes }),
-            harness: this.harness,
+            getHarness,
             getRecipes,
         };
     }

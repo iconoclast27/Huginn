@@ -4,7 +4,7 @@ AI assistant plugin for Obsidian — chat and skills. Huginn (Plugin 2) consumes
 
 ## Current status
 
-Latest test release: `0.1.0-test.11`. Huginn now provides a vault-aware sidebar chat plus a skill harness with human approval.
+Latest test release: `0.1.0-test.12`. Huginn now provides a vault-aware sidebar chat plus a skill harness with human approval.
 
 - **Chat:** `Huginn: Open Huginn chat` opens a sidebar view that sends the active note body to the configured Ollama chat model as context. A message-square ribbon icon is also provided. The chat resets when Obsidian reloads or the workspace is restored.
 - **Skill dispatch from chat:** User messages in the sidebar are first dispatched to the loaded recipe catalog; matched recipes run through the harness, while unmatched messages fall back to plain chat.

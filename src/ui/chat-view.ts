@@ -20,7 +20,8 @@ export const HUGINN_CHAT_VIEW_TYPE = 'huginn-chat';
 export interface ChatViewServices {
     controller: ChatController;
     dispatcher: ChatSkillDispatcher;
-    harness: HuginnHarness | null;
+    /** Live harness accessor so restored views pick up the harness once it initializes. */
+    getHarness: () => HuginnHarness | null;
     /** Live recipe catalog accessor so chat dispatch sees recipes loaded after view creation. */
     getRecipes: () => LoadedRecipe[];
 }
@@ -41,6 +42,11 @@ export class HuginnChatView extends ItemView {
         super(leaf);
         this.services = services;
         this.session = emptyChatState();
+    }
+
+    /** Current harness, which may only be assigned after Muninn finishes loading. */
+    private get harness(): HuginnHarness | null {
+        return this.services.getHarness();
     }
 
     getViewType(): string {
@@ -66,11 +72,12 @@ export class HuginnChatView extends ItemView {
     }
 
     getState(): HuginnChatState {
-        // Do not persist message history across reloads / workspace restores.
-        // The active note path is remembered so the context header is stable.
+        // Do not persist message history or active note path across reloads /
+        // workspace restores. Always derive the active note from Obsidian's
+        // current workspace so the chat context cannot show a stale note.
         return {
             messages: [],
-            activeNotePath: this.session.activeNotePath,
+            activeNotePath: null,
             activeNoteContent: null,
         };
     }
@@ -78,13 +85,10 @@ export class HuginnChatView extends ItemView {
     async setState(state: unknown, _result: ViewStateResult): Promise<void> {
         const sanitized = sanitizeChatState(state);
         if (sanitized === null) return;
-        this.session = {
-            messages: [],
-            activeNotePath: sanitized.activeNotePath,
-            activeNoteContent: null,
-        };
-        this.applySessionToDom();
-        // Reload the active note context after a workspace restore instead of replaying stale content.
+        // Reset to empty state and re-read the current active note from Obsidian.
+        // Do not trust the persisted activeNotePath — it may belong to a note that
+        // was open in the previous session.
+        this.session = emptyChatState();
         await this.refreshContext();
     }
 
@@ -208,7 +212,8 @@ export class HuginnChatView extends ItemView {
     }
 
     private async runSkillFromChat(intent: DispatchIntent, recipe: LoadedRecipe, dispatch: DispatchResult): Promise<void> {
-        if (!this.services.harness) {
+        const harness = this.harness;
+        if (!harness) {
             this.renderMessage('assistant', 'Huginn harness is not ready yet. Is Muninn installed and enabled?');
             return;
         }
@@ -216,7 +221,7 @@ export class HuginnChatView extends ItemView {
         this.renderMessage('assistant', `Running ${recipe.metadata.name} on ${intent.targetPath}... (${intent.reason})`);
 
         const targetPath = normalizeNotePath(intent.targetPath);
-        const result = await this.services.harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {}, this.abortController?.signal);
+        const result = await harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {}, this.abortController?.signal);
 
         if (!result.schemaValid) {
             const msg = result.schemaErrors.map((e) => e.message).join('; ');
