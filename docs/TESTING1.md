@@ -1,4 +1,4 @@
-# Huginn Smoke Test Scenario v0.1.0-test.14
+# Huginn Smoke Test Scenario v0.1.0-test.17
 
 ## Environment
 
@@ -7,13 +7,13 @@
 - A chat-capable model pulled, e.g. `qwen2.5:14b` or `qwen3.5:4b`.
 - Muninn `0.2.0-test.15` (or later) installed and enabled.
 - Vault already indexed by Muninn (run **Muninn: Force reindex vault** if unsure).
-- Huginn `0.1.0-test.14` installed via BRAT.
+- Huginn `0.1.0-test.17` installed via BRAT.
 
 ## Install Huginn via BRAT
 
 1. Install the BRAT plugin in Obsidian if it is not already installed.
 2. Open **Obsidian Settings → Community Plugins → BRAT**.
-3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.14`.
+3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.17`.
 4. Enable the **Huginn** plugin in Obsidian settings.
 5. Reload Obsidian if prompted.
 6. Wait for Muninn's initial reindex to complete before testing Huginn.
@@ -248,8 +248,8 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 
 ## Known limitations
 
-- v0.1.0-test.14 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction** is read-only and returns inline in chat.
-- Ground-truth validation currently checks only a fixed set of primitive checks (`exists`, `not-exists`, `matches-frontmatter`, `not-in-frontmatter`).
+- v0.1.0-test.17 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction** is read-only and returns inline in chat.
+- Ground-truth validation ships with four built-in primitives (`file-exists`, `file-not-exists`, `frontmatter-contains`, `frontmatter-not-contains`) and can be extended by registering new primitives.
 - Title suggestion sets or replaces the first `# ` heading in the note body and also sets the `title` frontmatter property; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
 - Chat uses **active-note context only** for plain chat responses. Skill dispatch sends a separate dispatch request to decide which recipe to run; the recipe itself then gathers its own inputs.
