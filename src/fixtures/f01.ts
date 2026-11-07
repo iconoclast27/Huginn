@@ -51,7 +51,13 @@ Return JSON with tag, reason, and confidence.
 }
 
 # Apply Method
-suggest-tags
+append-frontmatter-array
+
+# Apply Params
+{
+  "key": "tags",
+  "valuePath": "tag"
+}
 
 # Validation
 `;

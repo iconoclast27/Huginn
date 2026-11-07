@@ -45,6 +45,11 @@ Return JSON only.
 # Apply Method
 noop
 
+# Chat Render
+template: numbered-list
+field: todos
+message: No actionable TODOs found.
+
 # Validation
 - path: /tag
   source: vault-file
@@ -61,7 +66,9 @@ noop
 | `Inputs` | List of `{ key, description, source }`. Source may be `query`, `path`, `vocabulary`, `constant`, or `recipe-param`. |
 | `Instructions` | Prompt body with `{{key}}` placeholders substituted by the harness |
 | `Output Contract` | JSON Schema object constraining the model's response |
-| `Apply Method` | Name of a harness-registered apply routine. Ships with `noop` for read-only skills and `suggest-tags`, `suggest-title`, `suggest-links` for write-class skills. |
+| `Apply Method` | Name of a harness-registered apply routine. Ships with `noop` for read-only skills and generic write-class primitives: `append-frontmatter-array`, `set-first-heading`, `append-section`. |
+| `Apply Params` | Optional JSON object consumed by generic apply routines (e.g., `{"key": "tags", "valuePath": "tag"}`). |
+| `Chat Render` | Optional read-only rendering hint for the chat sidebar (`paragraph`, `numbered-list`, `bulleted-list`, `json`). |
 | `Validation` | Ground-truth checks against vault state via `VaultGroundTruthValidator` (`vault-file` source) |
 
 ## Harness flow
@@ -74,7 +81,8 @@ noop
 6. **Ground-truth validate** — `VaultGroundTruthValidator` checks the output against the actual vault file (e.g., the proposed tag must not already be in the note's frontmatter `tags`).
 7. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
 8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**. Recipes with `Apply Method: noop` (read-only skills) skip this step.
-9. **Apply** — the routine named by `Apply Method` runs only after approval. The model cannot invoke routines directly. Read-only skills do not run an apply routine.
+9. **Apply** — the routine named by `Apply Method` runs only after approval. Generic write-class primitives read their parameters from `# Apply Params`. The model cannot invoke routines directly. Read-only skills do not run an apply routine.
+10. **Learn** — if a `CorrectionsMemory` is configured, schema errors, ground-truth failures, apply failures, and rejected suggestions are appended to `Agents/Huginn/MEMORY/corrections.md`. Recent corrections are injected into the dispatcher prompt and the recipe prompt so the model is less likely to repeat the mistake.
 
 ## Source modules
 
@@ -99,6 +107,10 @@ noop
 | `src/chat/dispatch.ts` | `ChatSkillDispatcher`: model maps user request to recipe + target path |
 | `src/ui/chat-view.ts` | `HuginnChatView`: sidebar `ItemView` with bubble UI, input, and state |
 | `src/ui/chat-state.ts` | Serializable chat state + sanitization for view persistence |
+| `src/memory/store.ts` | `VaultMemoryStore`: append-only Markdown memory with recurrence tracking |
+| `src/memory/kinds.ts` | `CorrectionsMemory`, `UserMemory`, `ChatSummaryMemory` wrappers |
+| `src/memory/obsidian-storage.ts` | Obsidian-backed `MemoryStorage` implementation |
+| `src/memory/commands.ts` | Parser for explicit user memory commands |
 | `src/fixtures/f01.ts` | Fixture policing the harness end-to-end with a fake LLM |
 | `src/fixtures/f02.ts` | Fixture policing Huginn settings sanitization |
 | `src/fixtures/f03.ts` | Fixture policing ground-truth validation against a fake vault |
@@ -110,6 +122,28 @@ noop
 | `src/fixtures/f09.ts` | Target path `.md` normalization |
 | `src/fixtures/f10.ts` | Chat-state sanitization and round-trip |
 | `src/fixtures/f11.ts` | `ChatSkillDispatcher` intent parsing |
+| `src/fixtures/f12.ts` | `VaultMemoryStore` + all three memory-kind wrappers |
+| `src/fixtures/f13.ts` | Harness appends corrections on schema, ground-truth, and apply failures |
+| `src/fixtures/f14.ts` | User memory command parsing and context framing |
+| `src/fixtures/f15.ts` | Chat summary memory: append, summarize, and prompt injection |
+
+## Memory system
+
+Huginn stores machine-readable, append-only memory in `Agents/Huginn/MEMORY/`. Memory files are Markdown notes with YAML frontmatter entries, one per fence block. They are appended by the model or harness when it is corrected, refused, or explicitly told something by the user.
+
+Three memory kinds share the same underlying `VaultMemoryStore`:
+
+| Kind | File | Writer | Reader | Purpose |
+|------|------|--------|--------|---------|
+| **Corrections** | `corrections.md` | harness + chat UI | dispatcher + recipe renderer | Mistakes the model made and should not repeat |
+| **User memory** | `user-memory.md` | chat UI | chat system prompt | Things the user explicitly told Huginn to remember |
+| **Chat summary** | `chat-summaries.md` | chat UI "Remember chat" button | chat system prompt | Condensed history from long conversations |
+
+Corrections are appended when: the model returns JSON that fails schema validation; a ground-truth check fails; an apply routine fails; or the user rejects a suggestion in the approval gate. Each entry records the recipe name, failure type, affected key/value, and a short note. Recent corrections are injected into the dispatcher system prompt and into the recipe prompt before the model runs.
+
+User memory is appended when the user types an explicit command in chat, such as `Remember that I prefer qwen2.5:14b`, `Don't suggest tags that are already in the note`, or `I prefer concise answers`. These are parsed by `parseUserMemoryCommand` and read back into the chat system prompt as `Things the user has told you`.
+
+Chat summaries are appended when the user clicks the **Remember chat** button in the sidebar header. The conversation (excluding system context) is sent to the LLM with a summarization prompt; the returned summary is stored in `chat-summaries.md` and read back into future chat system prompts as `Summaries of earlier conversations`.
 
 ## Wiring into Obsidian
 
@@ -146,4 +180,9 @@ The chat path is intentionally minimal in this first cut. It is not a recipe; it
 - ✅ Human approval UI (`ApprovalModal` + `ObsidianApprovalGate`).
 - ✅ Write-class apply routines for `suggest-tags`, `suggest-title`, and `suggest-links` — `createDefaultApplyRegistry` in `src/harness/apply.ts`.
 - ✅ Chat modal using active-note context.
+- ✅ Shared memory store (`VaultMemoryStore`) and three memory-kind wrappers in `src/memory/`.
+- ✅ Corrections notebook wiring into dispatcher, recipe prompts, and failure/rejection paths.
+- ✅ Explicit user memory commands parsed in chat and injected into the chat system prompt.
+- ✅ Chat-summary "Remember chat content" button that summarizes the conversation and injects saved summaries into future chat prompts.
 - Richer chat context (linked/related notes, full vault RAG) — deferred until active-note smoke test passes.
+- Ground-truth checks as fully API-style primitives — deferred until a new recipe needs a check not covered by the current subset.

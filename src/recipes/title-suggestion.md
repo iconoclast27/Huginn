@@ -50,6 +50,11 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
 }
 
 # Apply Method
-suggest-title
+set-first-heading
+
+# Apply Params
+{
+  "valuePath": "title"
+}
 
 # Validation

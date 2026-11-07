@@ -19,6 +19,8 @@ import type {
     JsonSchemaBase,
     JsonArraySchema,
     JsonObjectSchema,
+    ChatRenderTemplate,
+    ChatRenderTemplateType,
 } from './types.ts';
 
 export interface ParsedRecipe {
@@ -44,7 +46,9 @@ export function parseRecipe(source: string, sourcePath: string): ParsedRecipe {
     const instructions = parseSingleTextSection(sections.get('instructions'), 'Instructions', errors);
     const outputSchema = parseOutputSection(sections.get('output contract'), errors);
     const applyMethod = parseSingleTextSection(sections.get('apply method'), 'Apply Method', errors);
+    const applyParams = parseApplyParamsSection(sections.get('apply params'), errors);
     const validation = parseValidationSection(sections.get('validation'), errors);
+    const chatRender = parseChatRenderSection(sections.get('chat render'), errors);
 
     if (errors.length > 0) {
         return { ok: false, errors };
@@ -57,7 +61,9 @@ export function parseRecipe(source: string, sourcePath: string): ParsedRecipe {
         instructions: instructions!,
         outputSchema: outputSchema!,
         applyMethod: applyMethod!,
+        applyParams,
         validation,
+        chatRender,
     };
 
     return { ok: true, recipe, errors };
@@ -234,6 +240,32 @@ function parseValidationSection(text: string | undefined, errors: string[]): Rec
         rules.push({ path, source, check, params });
     }
     return rules;
+}
+
+function parseChatRenderSection(text: string | undefined, errors: string[]): ChatRenderTemplate | undefined {
+    if (!text || text.trim().length === 0) return undefined;
+    const template = extractYamlField(text, 'template') as ChatRenderTemplateType | undefined;
+    const field = extractYamlField(text, 'field');
+    const message = extractYamlField(text, 'message');
+    if (!template || !['paragraph', 'numbered-list', 'bulleted-list', 'json'].includes(template)) {
+        errors.push(`Invalid or missing chat render template (paragraph | numbered-list | bulleted-list | json)`);
+        return undefined;
+    }
+    if (!field || field.length === 0) {
+        errors.push(`Chat render requires a 'field' path into the output object`);
+        return undefined;
+    }
+    return { template, field, message };
+}
+
+function parseApplyParamsSection(text: string | undefined, errors: string[]): Record<string, unknown> | undefined {
+    if (!text || text.trim().length === 0) return undefined;
+    try {
+        return JSON.parse(text) as Record<string, unknown>;
+    } catch (e) {
+        errors.push(`Apply Params is not valid JSON: ${(e as Error).message}`);
+        return undefined;
+    }
 }
 
 // ---------------------------------------------------------------------------

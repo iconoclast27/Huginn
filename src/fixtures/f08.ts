@@ -2,8 +2,8 @@
 // Huginn — F08: Write-class suggest routines mutate the note body
 // src/fixtures/f08.ts
 //
-// Exercises the real apply routines (suggest-tags, suggest-title, suggest-links)
-// against an in-memory fake vault and verifies the resulting file contents.
+// Exercises the generic apply primitives (append-frontmatter-array, set-first-heading,
+// append-section) against an in-memory fake vault and verifies the resulting file contents.
 //
 // Run: npx tsx src/fixtures/f08.ts
 // =============================================================================
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
     const titleRecipe = loadResult.recipes.find((r) => r.metadata.name === 'title-suggestion');
     const linkRecipe = loadResult.recipes.find((r) => r.metadata.name === 'link-suggestion');
 
-    // suggest-tags
+    // append-frontmatter-array
     if (tagRecipe) {
         const harness = new HuginnHarness({
             llmClient: new FakeLlmClient(JSON.stringify({ tag: 'index', reason: 'test', confidence: 0.8 })),
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
         console.log('[F08] RED: tag-assignment recipe not found');
     }
 
-    // suggest-title
+    // set-first-heading
     if (titleRecipe) {
         const harness = new HuginnHarness({
             llmClient: new FakeLlmClient(JSON.stringify({ title: 'Better Title', reason: 'test', confidence: 0.8 })),
@@ -90,7 +90,7 @@ async function main(): Promise<void> {
         console.log('[F08] RED: title-suggestion recipe not found');
     }
 
-    // suggest-links
+    // append-section
     if (linkRecipe) {
         const harness = new HuginnHarness({
             llmClient: new FakeLlmClient(JSON.stringify({ links: ['notes/alpha.md', 'notes/beta.md'], confidence: 0.7 })),

@@ -95,12 +95,25 @@ export interface Recipe {
     instructions: string;
     outputSchema: RecipeOutputSchema;
     applyMethod: string;
+    /** Optional parameters consumed by generic apply methods. */
+    applyParams?: ApplyMethodParams;
     validation: RecipeValidationRule[];
+    /** Optional render hint for read-only skills in the chat sidebar. */
+    chatRender?: ChatRenderTemplate;
 }
 
 export interface LoadedRecipe extends Recipe {
     /** Absolute or vault-relative path, depending on loader. */
     sourcePath: string;
+}
+
+export type ChatRenderTemplateType = 'paragraph' | 'numbered-list' | 'bulleted-list' | 'json';
+
+export interface ChatRenderTemplate {
+    template: ChatRenderTemplateType;
+    /** JSON pointer path inside the output object for the value to render. */
+    field: string;
+    message?: string;
 }
 
 export interface GatheredInput {
@@ -149,6 +162,11 @@ export interface ApplyContext {
     recipe: LoadedRecipe;
     output: unknown;
     inputs: GatheredInput[];
+}
+
+/** Generic parameters supplied by a recipe for its chosen apply method. */
+export interface ApplyMethodParams {
+    [key: string]: unknown;
 }
 
 export interface RecipeRunResult {

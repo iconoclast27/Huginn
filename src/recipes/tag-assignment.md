@@ -61,7 +61,13 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
 }
 
 # Apply Method
-suggest-tags
+append-frontmatter-array
+
+# Apply Params
+{
+  "key": "tags",
+  "valuePath": "tag"
+}
 
 # Validation
 - path: /tag

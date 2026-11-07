@@ -12,8 +12,7 @@
 
 .huginn-chat-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 8px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--background-modifier-border);
@@ -21,7 +20,7 @@
 }
 
 .huginn-chat-context {
-    flex: 1;
+    width: 100%;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -32,7 +31,9 @@
     opacity: 0.8;
 }
 
-.huginn-chat-refresh {
+.huginn-chat-refresh,
+.huginn-chat-remember {
+    align-self: flex-start;
     flex-shrink: 0;
     font-size: 0.8em;
 }

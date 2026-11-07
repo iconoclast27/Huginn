@@ -10,6 +10,9 @@ Latest test release: `0.1.0-test.13`. Huginn now provides a vault-aware sidebar 
 - **Skill dispatch from chat:** User messages in the sidebar are first dispatched to the loaded recipe catalog; matched recipes run through the harness, while unmatched messages fall back to plain chat.
 - **Read-only skills inline:** `task-extraction` generates an actionable TODO list implied by the note and returns it directly in the chat without opening the approval modal.
 - **Skills:** `Huginn: Run Huginn skill` discovers `.md` recipes in `Agents/Huginn/SKILLS/`, renders them, validates the model's JSON output, shows a diff approval modal, and applies write-class suggestions for tag, title, and link recipes.
+- **Memory:** `Agents/Huginn/MEMORY/` stores corrections, user memory, and future chat summaries. Corrections are written automatically when schema validation, ground truth, apply routines, or user rejection fail, then fed back into dispatcher and recipe prompts.
+- **User memory commands:** In chat, type `Remember that ...`, `Don't ...`, `Avoid ...`, or `I prefer ...` to add an explicit note that is injected into the chat system prompt.
+- **Chat summaries:** Click the **Remember chat** button in the sidebar header to summarize the current conversation; summaries are stored in `Agents/Huginn/MEMORY/chat-summaries.md` and recalled in future chat sessions.
 - **Frontmatter handling:** `tag-assignment` uses Obsidian's `fileManager.processFrontMatter` to add tags. `title-suggestion` sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter when necessary.
 - **Target path normalization:** note paths entered without `.md` are automatically normalized to `.md` before the skill runs.
 
@@ -31,7 +34,7 @@ The production bundle is written to `main.js`.
 npm run fixtures
 ```
 
-Runs F01–F11, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, and chat skill-dispatch intent parsing.
+Runs F01–F15, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the five shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, chat skill-dispatch intent parsing, vault memory store, corrections wiring, user memory commands, and chat summary memory.
 
 ## Commands
 
@@ -40,4 +43,9 @@ Runs F01–F11, covering harness end-to-end, settings, ground truth, approval, r
 
 ## Vault layout
 
-Skill recipes live in `Agents/Huginn/SKILLS/` inside the vault.
+```text
+Agents/
+  Huginn/
+    SKILLS/      # skill recipes
+    MEMORY/      # corrections.md, user-memory.md, chat-summaries.md
+```

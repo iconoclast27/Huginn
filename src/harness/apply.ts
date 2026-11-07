@@ -7,7 +7,8 @@
 // recipe and runs it after schema validation and human approval.
 // =============================================================================
 
-import type { ApplyContext, ApplyResult, GatheredInput } from '../recipes/types.ts';
+import type { ApplyContext, ApplyResult, GatheredInput, ApplyMethodParams } from '../recipes/types.ts';
+import { resolveOutputField } from '../ui/render-utils.ts';
 
 export interface ApplyRoutine {
     (ctx: ApplyContext): Promise<ApplyResult>;
@@ -58,12 +59,17 @@ export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyReg
         };
     });
 
-    registry.register('suggest-tags', async (ctx): Promise<ApplyResult> => {
-        const typed = ctx.output as { tag?: string; reason?: string; confidence?: number };
-        const tag = typed.tag;
-        if (!tag || tag.length === 0) {
-            return { applied: false, message: 'No tag provided; nothing to apply.' };
+    // Generic primitive: append a value to a frontmatter array (e.g., tags).
+    registry.register('append-frontmatter-array', async (ctx): Promise<ApplyResult> => {
+        const params = ctx.recipe.applyParams ?? {};
+        const key = stringParam(params, 'key', 'tags');
+        const valuePath = stringParam(params, 'valuePath', 'value');
+        const unique = booleanParam(params, 'unique', true);
+        const value = resolveOutputField(ctx.output, valuePath);
+        if (!value || (typeof value !== 'string' && typeof value !== 'number')) {
+            return { applied: false, message: `No ${valuePath} provided; nothing to apply.` };
         }
+        const valueText = String(value);
 
         const targetPath = extractTargetPath(ctx.inputs);
         const file = targetPath ? resolveFile(targetPath) : null;
@@ -74,32 +80,31 @@ export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyReg
         try {
             if (processFrontMatter) {
                 await processFrontMatter(file, (frontmatter) => {
-                    const tags = parseTags(frontmatter.tags);
-                    if (!tags.includes(tag)) tags.push(tag);
-                    frontmatter.tags = formatTags(tags);
+                    const arr = parseFrontmatterArray(frontmatter[key]);
+                    if (!unique || !arr.includes(valueText)) arr.push(valueText);
+                    frontmatter[key] = arr;
                 });
             } else {
                 const content = await readFile(file);
-                const newContent = addTagToFrontmatter(content, tag);
-                await writeFile(file, newContent);
+                const { frontmatter, body } = splitFrontmatter(content);
+                const arr = parseFrontmatterArray(frontmatter[key]);
+                if (!unique || !arr.includes(valueText)) arr.push(valueText);
+                frontmatter[key] = arr;
+                await writeFile(file, joinFrontmatter(frontmatter, body));
             }
-            return {
-                applied: true,
-                message: `Added tag '${tag}' to frontmatter of ${targetPath}.`,
-            };
+            return { applied: true, message: `Added '${valueText}' to frontmatter ${key} of ${targetPath}.` };
         } catch (e) {
-            return {
-                applied: false,
-                message: `Failed to write tag '${tag}' to ${targetPath}: ${(e as Error).message}`,
-            };
+            return { applied: false, message: `Failed to write ${key} '${valueText}' to ${targetPath}: ${(e as Error).message}` };
         }
     });
 
-    registry.register('suggest-title', async (ctx): Promise<ApplyResult> => {
-        const typed = ctx.output as { title?: string; reason?: string; confidence?: number };
-        const title = typed.title;
-        if (!title || title.length === 0) {
-            return { applied: false, message: 'No title provided; nothing to apply.' };
+    // Generic primitive: set or replace the first H1 heading in the body.
+    registry.register('set-first-heading', async (ctx): Promise<ApplyResult> => {
+        const params = ctx.recipe.applyParams ?? {};
+        const valuePath = stringParam(params, 'valuePath', 'title');
+        const value = resolveOutputField(ctx.output, valuePath);
+        if (!value || typeof value !== 'string' || value.length === 0) {
+            return { applied: false, message: `No ${valuePath} provided; nothing to apply.` };
         }
 
         const targetPath = extractTargetPath(ctx.inputs);
@@ -110,25 +115,31 @@ export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyReg
 
         try {
             const content = await readFile(file);
-            const newContent = setFirstHeading(content, title);
-            await writeFile(file, newContent);
-            return {
-                applied: true,
-                message: `Set first heading to '${title}' in ${targetPath}.`,
-            };
+            const { frontmatter, body } = splitFrontmatter(content);
+            frontmatter.title = value;
+            const trimmed = body.trimStart();
+            const newBody = trimmed.startsWith('# ')
+                ? `# ${value}\n${trimmed.slice(trimmed.indexOf('\n') + 1)}`
+                : `# ${value}\n\n${body}`;
+            await writeFile(file, joinFrontmatter(frontmatter, newBody));
+            return { applied: true, message: `Set first heading to '${value}' in ${targetPath}.` };
         } catch (e) {
-            return {
-                applied: false,
-                message: `Failed to write title '${title}' to ${targetPath}: ${(e as Error).message}`,
-            };
+            return { applied: false, message: `Failed to write title '${value}' to ${targetPath}: ${(e as Error).message}` };
         }
     });
 
-    registry.register('suggest-links', async (ctx): Promise<ApplyResult> => {
-        const typed = ctx.output as { links?: string[]; confidence?: number };
-        const links = Array.isArray(typed.links) ? typed.links.filter((l) => typeof l === 'string' && l.length > 0) : [];
-        if (links.length === 0) {
-            return { applied: false, message: 'No links provided; nothing to apply.' };
+    // Generic primitive: append a section with formatted items (e.g., wikilinks).
+    registry.register('append-section', async (ctx): Promise<ApplyResult> => {
+        const params = ctx.recipe.applyParams ?? {};
+        const heading = stringParam(params, 'heading', 'Related');
+        const valuePath = stringParam(params, 'valuePath', 'items');
+        const itemTemplate = stringParam(params, 'itemTemplate', '- {{value}}');
+        const value = resolveOutputField(ctx.output, valuePath);
+        const items = Array.isArray(value)
+            ? value.filter((v): v is string => typeof v === 'string' && v.length > 0)
+            : [];
+        if (items.length === 0) {
+            return { applied: false, message: `No ${valuePath} provided; nothing to apply.` };
         }
 
         const targetPath = extractTargetPath(ctx.inputs);
@@ -139,17 +150,14 @@ export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyReg
 
         try {
             const content = await readFile(file);
-            const newContent = appendLinksSection(content, links);
-            await writeFile(file, newContent);
-            return {
-                applied: true,
-                message: `Added ${links.length} link(s) to ${targetPath}: ${links.join(', ')}`,
-            };
+            const { frontmatter, body } = splitFrontmatter(content);
+            const formatted = items.map((item) => itemTemplate.replace(/\{\{value\}\}/g, stripMdExtension(item))).join('\n');
+            const separator = body.length > 0 && !body.endsWith('\n\n') ? '\n\n' : '';
+            const newBody = `${body}${separator}## ${heading}\n${formatted}\n`;
+            await writeFile(file, joinFrontmatter(frontmatter, newBody));
+            return { applied: true, message: `Added ${items.length} item(s) to ${targetPath}: ${items.join(', ')}` };
         } catch (e) {
-            return {
-                applied: false,
-                message: `Failed to write links to ${targetPath}: ${(e as Error).message}`,
-            };
+            return { applied: false, message: `Failed to write ${valuePath} to ${targetPath}: ${(e as Error).message}` };
         }
     });
 
@@ -163,36 +171,6 @@ function extractTargetPath(inputs: GatheredInput[]): string | undefined {
 
 function isTFileLike(file: unknown): file is { path: string; extension: string } {
     return typeof file === 'object' && file !== null && 'path' in file && 'extension' in file;
-}
-
-function addTagToFrontmatter(content: string, tag: string): string {
-    const { frontmatter, body } = splitFrontmatter(content);
-    const tags = frontmatter.tags ? parseTags(frontmatter.tags) : [];
-    if (tags.includes(tag)) {
-        // Preserve unchanged content if tag already present.
-        return content;
-    }
-    tags.push(tag);
-    frontmatter.tags = formatTags(tags);
-    return joinFrontmatter(frontmatter, body);
-}
-
-function setFirstHeading(content: string, title: string): string {
-    const { frontmatter, body } = splitFrontmatter(content);
-    frontmatter.title = title;
-    const trimmed = body.trimStart();
-    if (trimmed.startsWith('# ')) {
-        const rest = trimmed.slice(trimmed.indexOf('\n') + 1);
-        return joinFrontmatter(frontmatter, `# ${title}\n${rest}`);
-    }
-    return joinFrontmatter(frontmatter, `# ${title}\n\n${body}`);
-}
-
-function appendLinksSection(content: string, links: string[]): string {
-    const { frontmatter, body } = splitFrontmatter(content);
-    const formatted = links.map((l) => `[[${stripMdExtension(l)}]]`).join('\n');
-    const separator = body.length > 0 && !body.endsWith('\n\n') ? '\n\n' : '';
-    return joinFrontmatter(frontmatter, `${body}${separator}## Related\n${formatted}\n`);
 }
 
 function stripMdExtension(path: string): string {
@@ -240,14 +218,20 @@ export function joinFrontmatter(frontmatter: Record<string, unknown>, body: stri
     return `${lines.join('\n')}${body.startsWith('\n') ? '' : '\n'}${body}`;
 }
 
-function parseTags(value: unknown): string[] {
-    if (Array.isArray(value)) return value.filter((v) => typeof v === 'string') as string[];
+function parseFrontmatterArray(value: unknown): string[] {
+    if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
     if (typeof value === 'string') return value.split(',').map((t) => t.trim()).filter(Boolean);
     return [];
 }
 
-function formatTags(tags: string[]): string[] {
-    return tags;
+function stringParam(params: ApplyMethodParams, key: string, defaultValue: string): string {
+    const value = params[key];
+    return typeof value === 'string' ? value : defaultValue;
+}
+
+function booleanParam(params: ApplyMethodParams, key: string, defaultValue: boolean): boolean {
+    const value = params[key];
+    return typeof value === 'boolean' ? value : defaultValue;
 }
 
 function parseSimpleYaml(yaml: string): Record<string, unknown> {

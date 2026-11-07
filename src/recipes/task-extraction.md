@@ -51,4 +51,9 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
 # Apply Method
 noop
 
+# Chat Render
+template: numbered-list
+field: todos
+message: No actionable TODOs found.
+
 # Validation

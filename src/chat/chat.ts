@@ -7,8 +7,7 @@
 // first cut.
 // =============================================================================
 
-import { TFile } from 'obsidian';
-import type { App } from 'obsidian';
+import type { TFile, App } from 'obsidian';
 import type { AbortSignalLike, ChatLlmClient, ChatMessage } from '../llm/client.ts';
 
 export interface ChatSession {
@@ -20,6 +19,10 @@ export interface ChatSession {
 export interface ChatControllerOptions {
     app: App;
     llmClient: ChatLlmClient;
+    /** Optional user memory context so the chat model can recall user facts. */
+    getUserMemoryContext?: () => Promise<string> | string;
+    /** Optional chat-summary context so the model can recall earlier conversations. */
+    getChatSummaryContext?: () => Promise<string> | string;
 }
 
 export class ChatController {
@@ -31,7 +34,7 @@ export class ChatController {
 
     async createSession(): Promise<ChatSession> {
         const { path, content } = await this.readActiveNote();
-        const systemContent = this.buildSystemPrompt(path, content);
+        const systemContent = await this.buildSystemPrompt(path, content);
         return {
             messages: systemContent ? [{ role: 'system', content: systemContent }] : [],
             activeNotePath: path,
@@ -58,13 +61,29 @@ export class ChatController {
         };
     }
 
+    /**
+     * Ask the LLM to condense a conversation into a short memory note.
+     * System messages are excluded by the caller; this method just summarizes
+     * the provided messages.
+     */
+    async summarizeChat(messages: ChatMessage[], signal?: AbortSignalLike): Promise<string | null> {
+        const prompt: ChatMessage[] = [
+            {
+                role: 'system',
+                content: 'You are a concise conversation summarizer. Summarize the following user/assistant exchange, preserving facts, decisions, and context the user would want to recall in future chats. Return only the summary, with no preamble or markdown fences.',
+            },
+            ...messages,
+        ];
+        return this.opts.llmClient.chat(prompt, signal);
+    }
+
     private async readActiveNote(): Promise<{ path: string | null; content: string | null }> {
         const file = this.opts.app.workspace.getActiveFile();
-        if (!file || !(file instanceof TFile)) {
+        if (!file || typeof file !== 'object' || !('path' in file)) {
             return { path: null, content: null };
         }
         try {
-            const content = await this.opts.app.vault.cachedRead(file);
+            const content = await this.opts.app.vault.cachedRead(file as TFile);
             return { path: file.path, content };
         } catch (e) {
             // eslint-disable-next-line no-console
@@ -73,7 +92,7 @@ export class ChatController {
         }
     }
 
-    private buildSystemPrompt(path: string | null, content: string | null): string {
+    private async buildSystemPrompt(path: string | null, content: string | null): Promise<string> {
         const parts: string[] = [
             'You are Huginn, an AI assistant embedded in Obsidian as a vault-aware chat companion.',
             '',
@@ -86,6 +105,18 @@ export class ChatController {
             '- Do not claim the note says something it does not. If the note lacks the answer, say so.',
             '- You cannot rename, move, delete, or otherwise modify files unless the user explicitly asks you to run a skill.',
         ];
+        if (this.opts.getUserMemoryContext) {
+            const ctx = await this.opts.getUserMemoryContext();
+            if (ctx.length > 0) {
+                parts.push('', ctx);
+            }
+        }
+        if (this.opts.getChatSummaryContext) {
+            const ctx = await this.opts.getChatSummaryContext();
+            if (ctx.length > 0) {
+                parts.push('', ctx);
+            }
+        }
         if (path && content) {
             parts.push('', `Active note path: ${path}`, '', 'Note content:', '---', content, '---');
         } else {

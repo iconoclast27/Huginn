@@ -21,6 +21,7 @@ import { computeDiff } from './diff.ts';
 import type { ApplyRegistry } from './apply.ts';
 import type { LlmClient, AbortSignalLike } from '../llm/client.ts';
 import type { GroundTruthValidator } from './ground-truth.ts';
+import type { CorrectionsMemory } from '../memory/kinds.ts';
 
 export interface InputGatherer {
     gather(recipe: LoadedRecipe, params?: Record<string, unknown>): Promise<GatheredInput[]>;
@@ -44,6 +45,8 @@ export interface HarnessOptions {
     approvalGate: ApprovalGate;
     applyRegistry: ApplyRegistry;
     groundTruthValidator?: GroundTruthValidator;
+    /** Optional corrections memory so recipe prompts can learn from previous mistakes. */
+    corrections?: CorrectionsMemory;
 }
 
 export class HuginnHarness {
@@ -56,7 +59,10 @@ export class HuginnHarness {
         signal?: AbortSignalLike,
     ): Promise<RecipeRunResult> {
         const inputs = await this.opts.inputGatherer.gather(recipe, params);
-        const rendered = renderRecipe(createRenderContext(recipe, inputs));
+        const corrections = this.opts.corrections
+            ? await this.opts.corrections.getContext(recipe.metadata.name, 5)
+            : { text: '' };
+        const rendered = renderRecipe(createRenderContext(recipe, inputs), corrections.text);
 
         const raw = await this.opts.llmClient.complete(rendered.prompt, signal);
         const parsedOutput: { raw: string; json: unknown | undefined } = {
@@ -123,6 +129,31 @@ export class HuginnHarness {
                 } else if (approved === false) {
                     applyResult = { applied: false, message: 'Rejected by approval gate.' };
                 }
+            }
+        }
+
+        if (this.opts.corrections) {
+            if (!schemaValid) {
+                await this.opts.corrections.append({
+                    recipe: recipe.metadata.name,
+                    type: 'schema-error',
+                    key: schemaErrors.map((e) => e.message).join('; ').slice(0, 120),
+                    note: `Schema validation failed: ${schemaErrors.map((e) => e.message).join('; ')}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
+                });
+            } else if (!groundTruthValid) {
+                await this.opts.corrections.append({
+                    recipe: recipe.metadata.name,
+                    type: 'ground-truth',
+                    key: groundTruthErrors.map((e) => e.message).join('; ').slice(0, 120),
+                    note: `Ground-truth check failed: ${groundTruthErrors.map((e) => e.message).join('; ')}`,
+                });
+            } else if (applyResult?.applied === false) {
+                await this.opts.corrections.append({
+                    recipe: recipe.metadata.name,
+                    type: 'apply-failed',
+                    key: applyResult.message.slice(0, 120),
+                    note: `Apply failed: ${applyResult.message}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
+                });
             }
         }
 

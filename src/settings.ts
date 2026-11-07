@@ -6,20 +6,24 @@
 // in Plugin 2, not in Muninn.
 // =============================================================================
 
+export type ReportBackVerbosity = 'minimal' | 'normal' | 'verbose';
+
 export interface HuginnSettings {
     ollamaUrl: string;
     ollamaChatModel: string;
     chatTimeoutMs: number;
     warmupOnFocus: boolean;
     defaultTargetPath: string;
+    reportBackVerbosity: ReportBackVerbosity;
 }
 
 export const DEFAULT_SETTINGS: HuginnSettings = {
     ollamaUrl: 'http://localhost:11434',
     ollamaChatModel: 'qwen3.5:4b',
-    chatTimeoutMs: 60000,
+    chatTimeoutMs: 120000,
     warmupOnFocus: false,
     defaultTargetPath: 'notes/gamma.md',
+    reportBackVerbosity: 'verbose',
 };
 
 export function sanitizeSettings(saved: unknown): HuginnSettings {
@@ -44,6 +48,9 @@ export function sanitizeSettings(saved: unknown): HuginnSettings {
     }
     if (typeof s.defaultTargetPath === 'string') {
         out.defaultTargetPath = s.defaultTargetPath;
+    }
+    if (s.reportBackVerbosity === 'minimal' || s.reportBackVerbosity === 'normal' || s.reportBackVerbosity === 'verbose') {
+        out.reportBackVerbosity = s.reportBackVerbosity;
     }
 
     return out;

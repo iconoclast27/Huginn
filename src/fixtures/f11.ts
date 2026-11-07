@@ -31,7 +31,8 @@ const recipes: LoadedRecipe[] = [
         inputs: [],
         instructions: '',
         outputSchema: { type: 'object', properties: {}, required: [] },
-        applyMethod: 'suggest-tags',
+        applyMethod: 'append-frontmatter-array',
+        applyParams: { key: 'tags', valuePath: 'tag' },
         validation: [],
         sourcePath: 'tag-assignment.md',
     },
@@ -51,7 +52,7 @@ const getRecipes = () => recipes;
 
 // S1: valid dispatch JSON returns the right recipe and path.
 const s1Client = makeFakeClient('{"recipeName":"tag-assignment","targetPath":"notes/gamma.md","reason":"User asked for a tag."}');
-const s1 = new ChatSkillDispatcher({ llmClient: s1Client, getRecipes });
+const s1 = new ChatSkillDispatcher({ llmClient: s1Client, getRecipes, corrections: undefined });
 const r1 = await s1.dispatch('tag this note', 'notes/gamma.md');
 assert(r1.intent !== null, 'S1 should parse intent');
 assert(r1.intent!.recipeName === 'tag-assignment', 'S1 recipeName');
@@ -61,14 +62,14 @@ console.log('[F11] PASS: S1 valid dispatch JSON');
 
 // S2: unknown recipeName returns null intent.
 const s2Client = makeFakeClient('{"recipeName":"nonexistent","targetPath":"notes/gamma.md","reason":"Unknown."}');
-const s2 = new ChatSkillDispatcher({ llmClient: s2Client, getRecipes });
+const s2 = new ChatSkillDispatcher({ llmClient: s2Client, getRecipes, corrections: undefined });
 const r2 = await s2.dispatch('do something weird', 'notes/gamma.md');
 assert(r2.intent === null, 'S2 should reject unknown recipe');
 console.log('[F11] PASS: S2 unknown recipe rejected');
 
 // S3: fallback active note path is included in prompt and can be returned.
 const s3Client = makeFakeClient('{"recipeName":"task-extraction","targetPath":"notes/alpha.md","reason":"User asked for tasks."}');
-const s3 = new ChatSkillDispatcher({ llmClient: s3Client, getRecipes });
+const s3 = new ChatSkillDispatcher({ llmClient: s3Client, getRecipes, corrections: undefined });
 const r3 = await s3.dispatch('extract tasks from notes/alpha.md', null);
 assert(r3.intent !== null, 'S3 should parse intent');
 assert(r3.intent!.recipeName === 'task-extraction', 'S3 recipeName');
@@ -77,7 +78,7 @@ console.log('[F11] PASS: S3 explicit path overrides null active note');
 
 // S4: JSON wrapped in markdown fences is stripped.
 const s4Client = makeFakeClient('```json\n{"recipeName":"tag-assignment","targetPath":"notes/beta.md","reason":"Fenced."}\n```');
-const s4 = new ChatSkillDispatcher({ llmClient: s4Client, getRecipes });
+const s4 = new ChatSkillDispatcher({ llmClient: s4Client, getRecipes, corrections: undefined });
 const r4 = await s4.dispatch('tag notes/beta.md', 'notes/gamma.md');
 assert(r4.intent !== null, 'S4 should parse fenced intent');
 assert(r4.intent!.recipeName === 'tag-assignment', 'S4 recipeName');
@@ -86,7 +87,7 @@ console.log('[F11] PASS: S4 fenced JSON stripped');
 
 // S5: non-JSON response returns null intent.
 const s5Client = makeFakeClient('I am not JSON');
-const s5 = new ChatSkillDispatcher({ llmClient: s5Client, getRecipes });
+const s5 = new ChatSkillDispatcher({ llmClient: s5Client, getRecipes, corrections: undefined });
 const r5 = await s5.dispatch('hello', null);
 assert(r5.intent === null, 'S5 should reject non-JSON');
 assert(r5.raw === 'I am not JSON', 'S5 preserves raw');
@@ -104,7 +105,7 @@ const s7Client: ChatLlmClient = {
         return '{"recipeName":"task-extraction","targetPath":"notes/alpha.md","reason":"Listed."}';
     },
 };
-const s7 = new ChatSkillDispatcher({ llmClient: s7Client, getRecipes });
+const s7 = new ChatSkillDispatcher({ llmClient: s7Client, getRecipes, corrections: undefined });
 const r7 = await s7.dispatch('extract tasks', null);
 assert(r7.intent !== null, 'S7 should parse intent');
 console.log('[F11] PASS: S7 dispatch prompt lists available skills');
@@ -119,7 +120,7 @@ const s8Client: ChatLlmClient = {
         return '{"recipeName":"dynamic-skill","targetPath":"notes/dynamic.md","reason":"Dynamic."}';
     },
 };
-const s8 = new ChatSkillDispatcher({ llmClient: s8Client, getRecipes: () => dynamicRecipes });
+const s8 = new ChatSkillDispatcher({ llmClient: s8Client, getRecipes: () => dynamicRecipes, corrections: undefined });
 dynamicRecipes.push({
     metadata: { name: 'dynamic-skill', version: '0.1.0', modelTier: 'fast', riskClass: 'read-only' },
     trigger: { description: 'A skill added after construction.' },
@@ -137,7 +138,7 @@ console.log('[F11] PASS: S8 dynamic recipe catalog is read at dispatch time');
 
 // S6: empty recipeName returns null intent (no-match signal).
 const s6Client = makeFakeClient('{"recipeName":"","targetPath":"","reason":"No matching skill."}');
-const s6 = new ChatSkillDispatcher({ llmClient: s6Client, getRecipes });
+const s6 = new ChatSkillDispatcher({ llmClient: s6Client, getRecipes, corrections: undefined });
 const r6 = await s6.dispatch('what is the weather', null);
 assert(r6.intent === null, 'S6 empty recipeName should be no-match');
 console.log('[F11] PASS: S6 empty recipeName is no-match');

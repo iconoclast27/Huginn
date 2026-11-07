@@ -18,15 +18,20 @@ export interface RenderedRecipe {
     outputSchemaText: string;
 }
 
-export function renderRecipe(context: RecipeRenderContext): RenderedRecipe {
+export function renderRecipe(context: RecipeRenderContext, correctionsText = ''): RenderedRecipe {
     const { recipe, inputs } = context;
     const values = new Map<string, string>();
     for (const input of inputs) {
         values.set(input.key, serializeInputValue(input.value));
     }
 
+    let prompt = substitute(recipe.instructions, values);
+    if (correctionsText.length > 0) {
+        prompt += `\n\nPrevious mistakes to avoid for this skill:\n${correctionsText}`;
+    }
+
     return {
-        prompt: substitute(recipe.instructions, values),
+        prompt,
         outputSchemaText: substitute(JSON.stringify(recipe.outputSchema, null, 2), values),
     };
 }

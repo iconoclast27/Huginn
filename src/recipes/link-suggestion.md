@@ -62,6 +62,13 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
 }
 
 # Apply Method
-suggest-links
+append-section
+
+# Apply Params
+{
+  "valuePath": "links",
+  "heading": "Related",
+  "itemTemplate": "- [[{{value}}]]"
+}
 
 # Validation

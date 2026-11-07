@@ -16,6 +16,8 @@ import { MuninnApiInputGatherer } from './harness/gather.ts';
 import { createDefaultApplyRegistry } from './harness/apply.ts';
 import { VaultGroundTruthValidator } from './harness/ground-truth.ts';
 import { ObsidianVaultReader } from './harness/obsidian-vault.ts';
+import { ObsidianMemoryStorage } from './memory/obsidian-storage.ts';
+import { CorrectionsMemory, UserMemory, ChatSummaryMemory } from './memory/kinds.ts';
 import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
 import { loadRecipes } from './recipes/loader.ts';
 import type { LoadedRecipe } from './recipes/types.ts';
@@ -40,6 +42,9 @@ export default class HuginnPlugin extends Plugin {
     private harness: HuginnHarness | null = null;
     private chatClient: OllamaChatClient | null = null;
     private recipes: LoadedRecipe[] = [];
+    private correctionsMemory: CorrectionsMemory | null = null;
+    private userMemory: UserMemory | null = null;
+    private chatSummaryMemory: ChatSummaryMemory | null = null;
 
     async onload(): Promise<void> {
         try {
@@ -90,12 +95,17 @@ export default class HuginnPlugin extends Plugin {
                     model: this.settings.ollamaChatModel,
                     timeoutMs: this.settings.chatTimeoutMs,
                 });
+                const memoryStorage = new ObsidianMemoryStorage(this.app.vault);
+                this.correctionsMemory = new CorrectionsMemory(memoryStorage);
+                this.userMemory = new UserMemory(memoryStorage);
+                this.chatSummaryMemory = new ChatSummaryMemory(memoryStorage);
                 this.harness = new HuginnHarness({
                     llmClient: this.chatClient,
                     inputGatherer: new MuninnApiInputGatherer({ api, app: this.app }),
                     approvalGate: new ObsidianApprovalGate(this.app),
                     applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
                     groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
+                    corrections: this.correctionsMemory,
                 });
                 // Load recipes early so chat dispatch has the catalog available.
                 await this.loadRecipes();
@@ -164,6 +174,11 @@ export default class HuginnPlugin extends Plugin {
                 return;
             }
             this.muninnApi = api;
+            const memoryStorage = new ObsidianMemoryStorage(this.app.vault);
+            const corrections = this.correctionsMemory ?? new CorrectionsMemory(memoryStorage);
+            this.correctionsMemory = corrections;
+            this.userMemory = this.userMemory ?? new UserMemory(memoryStorage);
+            this.chatSummaryMemory = this.chatSummaryMemory ?? new ChatSummaryMemory(memoryStorage);
             this.harness = new HuginnHarness({
                 llmClient: new OllamaChatClient({
                     baseUrl: this.settings.ollamaUrl,
@@ -174,6 +189,7 @@ export default class HuginnPlugin extends Plugin {
                 approvalGate: new ObsidianApprovalGate(this.app),
                 applyRegistry: createDefaultApplyRegistry(createObsidianApplyOptions(this.app)),
                 groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
+                corrections,
             });
         }
         const recipes = await this.loadRecipes();
@@ -220,11 +236,30 @@ export default class HuginnPlugin extends Plugin {
         // pass live getters so restored views pick them up once initialization finishes.
         const getRecipes = () => this.recipes;
         const getHarness = () => this.harness;
+        const getSettings = () => this.settings;
+        const getMemory = () => ({
+            corrections: this.correctionsMemory,
+            user: this.userMemory,
+            summary: this.chatSummaryMemory,
+        });
         return {
-            controller: new ChatController({ app: this.app, llmClient }),
-            dispatcher: new ChatSkillDispatcher({ llmClient, getRecipes }),
+            controller: new ChatController({
+                app: this.app,
+                llmClient,
+                getUserMemoryContext: async () => {
+                    const ctx = await this.userMemory?.getContext(5);
+                    return ctx?.text ?? '';
+                },
+                getChatSummaryContext: async () => {
+                    const ctx = await this.chatSummaryMemory?.getContext(5);
+                    return ctx?.text ?? '';
+                },
+            }),
+            dispatcher: new ChatSkillDispatcher({ llmClient, getRecipes, corrections: this.correctionsMemory ?? undefined }),
             getHarness,
             getRecipes,
+            getSettings,
+            getMemory,
         };
     }
 
@@ -304,12 +339,28 @@ class HuginnSettingTab extends PluginSettingTab {
             .setName('Chat timeout (ms)')
             .setDesc('Abort chat completion requests after this many milliseconds.')
             .addText((text) => text
-                .setPlaceholder('60000')
+                .setPlaceholder('120000')
                 .setValue(String(this.plugin.settings.chatTimeoutMs))
                 .onChange(async (value) => {
                     const n = Number(value);
                     if (Number.isFinite(n) && n > 0) {
                         this.plugin.settings.chatTimeoutMs = n;
+                        await this.plugin.saveData(this.plugin.settings);
+                    }
+                }));
+
+        new Setting(containerEl)
+            .setName('Report-back verbosity')
+            .setDesc('How much status feedback the chat sidebar shows when running skills. Verbose is useful while testing; Minimal keeps the chat cleaner.')
+            .addDropdown((dropdown) => dropdown
+                .addOption('minimal', 'Minimal')
+                .addOption('normal', 'Normal')
+                .addOption('verbose', 'Verbose')
+                .setValue(this.plugin.settings.reportBackVerbosity)
+                .onChange(async (value) => {
+                    const v = value as import('./settings.ts').ReportBackVerbosity;
+                    if (v === 'minimal' || v === 'normal' || v === 'verbose') {
+                        this.plugin.settings.reportBackVerbosity = v;
                         await this.plugin.saveData(this.plugin.settings);
                     }
                 }));

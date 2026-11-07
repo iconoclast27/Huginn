@@ -46,6 +46,10 @@ function main(): void {
         sanitizeSettings({ warmupOnFocus: true }).warmupOnFocus === true);
     check('S3 preserves default target path',
         sanitizeSettings({ defaultTargetPath: 'notes/alpha.md' }).defaultTargetPath === 'notes/alpha.md');
+    check('S3 preserves verbose report-back verbosity',
+        sanitizeSettings({ reportBackVerbosity: 'verbose' }).reportBackVerbosity === 'verbose');
+    check('S3 preserves normal report-back verbosity',
+        sanitizeSettings({ reportBackVerbosity: 'normal' }).reportBackVerbosity === 'normal');
 
     check('S4 rejects negative timeout', sanitizeSettings({ chatTimeoutMs: -1 }).chatTimeoutMs === DEFAULT_SETTINGS.chatTimeoutMs);
     check('S4 rejects NaN timeout', sanitizeSettings({ chatTimeoutMs: NaN }).chatTimeoutMs === DEFAULT_SETTINGS.chatTimeoutMs);

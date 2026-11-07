@@ -10,6 +10,7 @@
 
 import type { LoadedRecipe } from '../recipes/types.ts';
 import type { AbortSignalLike, ChatLlmClient, ChatMessage } from '../llm/client.ts';
+import type { CorrectionsMemory } from '../memory/kinds.ts';
 
 export interface DispatchIntent {
     recipeName: string;
@@ -27,13 +28,15 @@ export interface ChatSkillDispatcherOptions {
     llmClient: ChatLlmClient;
     /** Live recipe catalog accessor so the prompt is always built from the latest loaded recipes. */
     getRecipes: () => LoadedRecipe[];
+    /** Optional corrections memory so the dispatcher can learn from previous mistakes. */
+    corrections?: CorrectionsMemory;
 }
 
 export class ChatSkillDispatcher {
     constructor(private opts: ChatSkillDispatcherOptions) {}
 
     async dispatch(userMessage: string, activeNotePath: string | null, signal?: AbortSignalLike): Promise<DispatchResult> {
-        const messages = this.buildDispatchMessages(userMessage, activeNotePath);
+        const messages = await this.buildDispatchMessages(userMessage, activeNotePath);
         const raw = await this.opts.llmClient.chat(messages, signal);
         if (raw === null) {
             return { intent: null, raw: null };
@@ -42,11 +45,15 @@ export class ChatSkillDispatcher {
         return { intent, raw };
     }
 
-    private buildDispatchMessages(userMessage: string, activeNotePath: string | null): ChatMessage[] {
+    private async buildDispatchMessages(userMessage: string, activeNotePath: string | null): Promise<ChatMessage[]> {
         const recipeList = this.opts
             .getRecipes()
             .map((r) => `- ${r.metadata.name}: ${r.trigger.description}`)
             .join('\n');
+
+        const corrections = this.opts.corrections
+            ? await this.opts.corrections.getContext(undefined, 5)
+            : { text: '' };
 
         const system = [
             'You are Huginn, a dispatcher inside Obsidian. The user has typed a request in a chat panel.',
@@ -62,6 +69,7 @@ export class ChatSkillDispatcher {
             '- reason should be one sentence explaining why you chose this skill.',
             '- If no skill matches the request, return {"recipeName":"", "targetPath":"", "reason":"No matching skill."}.',
             '- Do not return markdown, commentary, or code fences.',
+            corrections.text.length > 0 ? `\n${corrections.text}` : '',
         ].join('\n');
 
         return [

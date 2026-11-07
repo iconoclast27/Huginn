@@ -11,6 +11,7 @@ Huginn is Plugin 2 of Vault Overseer: the AI assistant for Obsidian. It owns the
 - Render recipe prompts and gather inputs from Muninn's vault index.
 - Validate model output against recipe JSON schemas.
 - Compute diffs and route apply routines after approval.
+- Store and recall corrections, user memory, and chat summaries in `Agents/Huginn/MEMORY/`.
 - Provide the user-facing skill/chat UI.
 
 ## Dependencies
@@ -24,13 +25,12 @@ Huginn is Plugin 2 of Vault Overseer: the AI assistant for Obsidian. It owns the
 Agents/
   Huginn/
     SKILLS/      # skill recipes
-    MEMORY/      # memory files (deferred)
-    NOTEBOOK/    # corrections notebook (deferred)
+    MEMORY/      # corrections.md, user-memory.md, chat-summaries.md
 ```
 
 ## Public surface
 
-Huginn does not expose a stable public API in v0.1.0-test.1. The only integration point is its dependency on Muninn's `getMuninnApi()` method.
+Huginn does not expose a stable public API in v0.1.0-test.x. The only integration point is its dependency on Muninn's `getMuninnApi()` method.
 
 ## Build
 

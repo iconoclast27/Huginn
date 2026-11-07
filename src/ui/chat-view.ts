@@ -14,6 +14,8 @@ import { emptyChatState, sanitizeChatState, type HuginnChatState } from './chat-
 import type { HuginnHarness } from '../harness/harness.ts';
 import type { LoadedRecipe, RecipeRunResult } from '../recipes/types.ts';
 import { normalizeNotePath } from './path-utils.ts';
+import { resolveOutputField } from './render-utils.ts';
+import { parseUserMemoryCommand } from '../memory/commands.ts';
 
 export const HUGINN_CHAT_VIEW_TYPE = 'huginn-chat';
 
@@ -24,6 +26,14 @@ export interface ChatViewServices {
     getHarness: () => HuginnHarness | null;
     /** Live recipe catalog accessor so chat dispatch sees recipes loaded after view creation. */
     getRecipes: () => LoadedRecipe[];
+    /** Current user settings so the chat can adapt report-back verbosity. */
+    getSettings: () => import('../settings.ts').HuginnSettings;
+    /** Optional memory helpers for corrections, user notes, and chat summaries. */
+    getMemory?: () => {
+        corrections: import('../memory/kinds.ts').CorrectionsMemory | null;
+        user: import('../memory/kinds.ts').UserMemory | null;
+        summary: import('../memory/kinds.ts').ChatSummaryMemory | null;
+    };
 }
 
 export class HuginnChatView extends ItemView {
@@ -39,6 +49,10 @@ export class HuginnChatView extends ItemView {
     private abortController: AbortController | null = null;
     /** Obsidian event registration for active-leaf changes. */
     private activeLeafChangeRef: EventRef | null = null;
+
+    private get verbosity(): import('../settings.ts').ReportBackVerbosity {
+        return this.services.getSettings().reportBackVerbosity;
+    }
 
     constructor(leaf: WorkspaceLeaf, services: ChatViewServices) {
         super(leaf);
@@ -109,7 +123,7 @@ export class HuginnChatView extends ItemView {
         if (!this.container) return;
         this.container.empty();
 
-        // Context header
+        // Context header: full-width context line, then refresh button on its own line.
         const header = this.container.createEl('div', { cls: 'huginn-chat-header' });
         this.contextEl = header.createEl('div', { cls: 'huginn-chat-context' });
         const refreshBtn = header.createEl('button', {
@@ -118,6 +132,14 @@ export class HuginnChatView extends ItemView {
         });
         refreshBtn.addEventListener('click', () => {
             void this.refreshContext(false);
+        });
+
+        const rememberBtn = header.createEl('button', {
+            cls: 'huginn-chat-remember',
+            text: 'Remember chat',
+        });
+        rememberBtn.addEventListener('click', () => {
+            void this.rememberChat();
         });
 
         // Messages area
@@ -200,6 +222,20 @@ export class HuginnChatView extends ItemView {
             return;
         }
 
+        // Explicit user memory commands are handled locally, not dispatched as skills.
+        const memoryCommand = parseUserMemoryCommand(text);
+        if (memoryCommand) {
+            const userMemory = this.services.getMemory?.().user ?? null;
+            if (userMemory) {
+                await userMemory.append(memoryCommand);
+                this.renderMessage('assistant', `Memory saved: ${memoryCommand.type} — ${memoryCommand.note}`);
+            } else {
+                this.renderMessage('assistant', 'Memory storage is not available yet.');
+            }
+            this.inputEl.value = '';
+            return;
+        }
+
         this.abortController = new AbortController();
         this.setLoading(true);
         this.renderMessage('user', text);
@@ -237,14 +273,16 @@ export class HuginnChatView extends ItemView {
         }
     }
 
-    private async runSkillFromChat(intent: DispatchIntent, recipe: LoadedRecipe, dispatch: DispatchResult): Promise<void> {
+    private async runSkillFromChat(intent: DispatchIntent, recipe: LoadedRecipe, _dispatch: DispatchResult): Promise<void> {
         const harness = this.harness;
         if (!harness) {
             this.renderMessage('assistant', 'Huginn harness is not ready yet. Is Muninn installed and enabled?');
             return;
         }
 
-        this.renderMessage('assistant', `Running ${recipe.metadata.name} on ${intent.targetPath}... (${intent.reason})`);
+        if (this.verbosity !== 'minimal') {
+            this.renderMessage('assistant', `Running ${recipe.metadata.name} on ${intent.targetPath}...`);
+        }
 
         const targetPath = normalizeNotePath(intent.targetPath);
         const result = await harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {}, this.abortController?.signal);
@@ -260,13 +298,34 @@ export class HuginnChatView extends ItemView {
             return;
         }
 
+        // User rejected the suggestion in the approval gate.
+        if (result.approved === false && result.applyResult === null) {
+            const corrections = this.services.getMemory?.().corrections ?? null;
+            if (corrections) {
+                await corrections.append({
+                    recipe: recipe.metadata.name,
+                    type: 'refusal',
+                    key: 'user rejected suggestion',
+                    note: 'User rejected the suggested change via the approval gate.',
+                });
+            }
+            this.renderMessage('assistant', 'Skill suggestion was rejected.');
+            return;
+        }
+
         if (recipe.applyMethod === 'noop') {
             this.renderReadOnlyResult(recipe, result);
             return;
         }
 
-        if (result.applyResult) {
+        if (result.applyResult?.applied) {
             this.renderMessage('assistant', result.applyResult.message);
+        } else if (result.applyResult) {
+            // applyResult exists but applied=false — include the reason if not minimal.
+            const msg = this.verbosity === 'minimal'
+                ? 'Skill could not be applied.'
+                : `Skill could not be applied: ${result.applyResult.message}`;
+            this.renderMessage('assistant', msg);
         } else if (result.approved === false) {
             this.renderMessage('assistant', 'Skill suggestion was rejected.');
         } else {
@@ -276,14 +335,74 @@ export class HuginnChatView extends ItemView {
         }
     }
 
-    private renderReadOnlyResult(recipe: LoadedRecipe, result: RecipeRunResult): void {
-        const json = result.parsedOutput.json as Record<string, unknown> | undefined;
-        if (recipe.metadata.name === 'task-extraction' && Array.isArray(json?.todos)) {
-            const todos = json.todos as string[];
-            const lines = todos.length === 0 ? ['No actionable TODOs found.'] : todos.map((t, i) => `${i + 1}. ${t}`);
-            this.renderMessage('assistant', lines.join('\n'));
+    private async rememberChat(): Promise<void> {
+        const summaryMemory = this.services.getMemory?.().summary ?? null;
+        if (summaryMemory === null) {
+            this.renderMessage('assistant', 'Memory storage is not available yet.');
             return;
         }
+
+        const chatMessages = this.session.messages.filter((m) => m.role !== 'system');
+        if (chatMessages.length === 0) {
+            this.renderMessage('assistant', 'Nothing to remember yet.');
+            return;
+        }
+
+        // If a request is already in flight, treat this as an interrupt.
+        if (this.abortController) {
+            this.abortController.abort();
+            return;
+        }
+
+        this.abortController = new AbortController();
+        this.setLoading(true);
+
+        try {
+            const summary = await this.services.controller.summarizeChat(chatMessages, this.abortController.signal);
+            if (summary === null || summary.trim().length === 0) {
+                this.renderMessage('assistant', 'Could not generate a chat summary.');
+                return;
+            }
+            await summaryMemory.append({
+                key: this.session.activeNotePath ?? 'general chat',
+                note: summary.trim(),
+            });
+            this.renderMessage('assistant', 'Chat summary saved.');
+        } finally {
+            this.abortController = null;
+            this.setLoading(false);
+            this.scrollToBottom();
+        }
+    }
+
+    private renderReadOnlyResult(recipe: LoadedRecipe, result: RecipeRunResult): void {
+        const json = result.parsedOutput.json as Record<string, unknown> | undefined;
+        const hint = recipe.chatRender;
+        if (!hint) {
+            this.renderMessage('assistant', '```json\n' + JSON.stringify(json, null, 2) + '\n```');
+            return;
+        }
+
+        const value = resolveOutputField(json, hint.field);
+        if (hint.template === 'paragraph' && typeof value === 'string') {
+            this.renderMessage('assistant', value);
+            return;
+        }
+        if ((hint.template === 'numbered-list' || hint.template === 'bulleted-list') && Array.isArray(value)) {
+            const items = value as string[];
+            if (items.length === 0) {
+                this.renderMessage('assistant', hint.message ?? 'No items found.');
+                return;
+            }
+            const prefix = hint.template === 'numbered-list' ? (i: number) => `${i + 1}. ` : () => '- ';
+            this.renderMessage('assistant', items.map((t, i) => `${prefix(i)}${t}`).join('\n'));
+            return;
+        }
+        if (hint.template === 'json') {
+            this.renderMessage('assistant', '```json\n' + JSON.stringify(json, null, 2) + '\n```');
+            return;
+        }
+        // Fallback for unexpected shapes.
         this.renderMessage('assistant', '```json\n' + JSON.stringify(json, null, 2) + '\n```');
     }
 
