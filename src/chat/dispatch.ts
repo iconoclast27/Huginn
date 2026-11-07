@@ -9,7 +9,7 @@
 // =============================================================================
 
 import type { LoadedRecipe } from '../recipes/types.ts';
-import type { ChatLlmClient, ChatMessage } from '../llm/client.ts';
+import type { AbortSignalLike, ChatLlmClient, ChatMessage } from '../llm/client.ts';
 
 export interface DispatchIntent {
     recipeName: string;
@@ -25,15 +25,16 @@ export interface DispatchResult {
 
 export interface ChatSkillDispatcherOptions {
     llmClient: ChatLlmClient;
-    recipes: LoadedRecipe[];
+    /** Live recipe catalog accessor so the prompt is always built from the latest loaded recipes. */
+    getRecipes: () => LoadedRecipe[];
 }
 
 export class ChatSkillDispatcher {
     constructor(private opts: ChatSkillDispatcherOptions) {}
 
-    async dispatch(userMessage: string, activeNotePath: string | null): Promise<DispatchResult> {
+    async dispatch(userMessage: string, activeNotePath: string | null, signal?: AbortSignalLike): Promise<DispatchResult> {
         const messages = this.buildDispatchMessages(userMessage, activeNotePath);
-        const raw = await this.opts.llmClient.chat(messages);
+        const raw = await this.opts.llmClient.chat(messages, signal);
         if (raw === null) {
             return { intent: null, raw: null };
         }
@@ -42,7 +43,8 @@ export class ChatSkillDispatcher {
     }
 
     private buildDispatchMessages(userMessage: string, activeNotePath: string | null): ChatMessage[] {
-        const recipeList = this.opts.recipes
+        const recipeList = this.opts
+            .getRecipes()
             .map((r) => `- ${r.metadata.name}: ${r.trigger.description}`)
             .join('\n');
 
@@ -83,7 +85,7 @@ export class ChatSkillDispatcher {
             ) {
                 return null;
             }
-            const matched = this.opts.recipes.find((r) => r.metadata.name === parsed.recipeName);
+            const matched = this.opts.getRecipes().find((r) => r.metadata.name === parsed.recipeName);
             if (!matched) return null;
             return {
                 recipeName: parsed.recipeName,

@@ -19,7 +19,7 @@ import { createRenderContext, renderRecipe } from '../recipes/renderer.ts';
 import { validateJson } from './validator.ts';
 import { computeDiff } from './diff.ts';
 import type { ApplyRegistry } from './apply.ts';
-import type { LlmClient } from '../llm/client.ts';
+import type { LlmClient, AbortSignalLike } from '../llm/client.ts';
 import type { GroundTruthValidator } from './ground-truth.ts';
 
 export interface InputGatherer {
@@ -53,11 +53,12 @@ export class HuginnHarness {
         recipe: LoadedRecipe,
         params?: Record<string, unknown>,
         beforeState?: unknown,
+        signal?: AbortSignalLike,
     ): Promise<RecipeRunResult> {
         const inputs = await this.opts.inputGatherer.gather(recipe, params);
         const rendered = renderRecipe(createRenderContext(recipe, inputs));
 
-        const raw = await this.opts.llmClient.complete(rendered.prompt);
+        const raw = await this.opts.llmClient.complete(rendered.prompt, signal);
         const parsedOutput: { raw: string; json: unknown | undefined } = {
             raw: raw ?? '',
             json: undefined,

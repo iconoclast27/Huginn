@@ -7,7 +7,7 @@
 // message when the view opens or when the user explicitly refreshes context.
 // =============================================================================
 
-import { ItemView, WorkspaceLeaf, type ViewStateResult } from 'obsidian';
+import { Component, ItemView, MarkdownRenderer, WorkspaceLeaf, type ViewStateResult } from 'obsidian';
 import { ChatController, type ChatSession } from '../chat/chat.ts';
 import { ChatSkillDispatcher, type DispatchResult, type DispatchIntent } from '../chat/dispatch.ts';
 import { emptyChatState, sanitizeChatState, type HuginnChatState } from './chat-state.ts';
@@ -21,7 +21,8 @@ export interface ChatViewServices {
     controller: ChatController;
     dispatcher: ChatSkillDispatcher;
     harness: HuginnHarness | null;
-    recipes: LoadedRecipe[];
+    /** Live recipe catalog accessor so chat dispatch sees recipes loaded after view creation. */
+    getRecipes: () => LoadedRecipe[];
 }
 
 export class HuginnChatView extends ItemView {
@@ -33,6 +34,8 @@ export class HuginnChatView extends ItemView {
     private sendButton: HTMLButtonElement | null = null;
     private contextEl: HTMLElement | null = null;
     private isLoading = false;
+    /** Tracks the in-flight LLM request so the Send button can interrupt it. */
+    private abortController: AbortController | null = null;
 
     constructor(leaf: WorkspaceLeaf, services: ChatViewServices) {
         super(leaf);
@@ -63,10 +66,12 @@ export class HuginnChatView extends ItemView {
     }
 
     getState(): HuginnChatState {
+        // Do not persist message history across reloads / workspace restores.
+        // The active note path is remembered so the context header is stable.
         return {
-            messages: this.session.messages,
+            messages: [],
             activeNotePath: this.session.activeNotePath,
-            activeNoteContent: this.session.activeNoteContent,
+            activeNoteContent: null,
         };
     }
 
@@ -74,11 +79,13 @@ export class HuginnChatView extends ItemView {
         const sanitized = sanitizeChatState(state);
         if (sanitized === null) return;
         this.session = {
-            messages: sanitized.messages,
+            messages: [],
             activeNotePath: sanitized.activeNotePath,
             activeNoteContent: null,
         };
         this.applySessionToDom();
+        // Reload the active note context after a workspace restore instead of replaying stale content.
+        await this.refreshContext();
     }
 
     private render(): void {
@@ -157,31 +164,41 @@ export class HuginnChatView extends ItemView {
         const text = this.inputEl.value.trim();
         if (text.length === 0) return;
 
+        // If a request is already in flight, the Send button acts as Stop.
+        if (this.abortController) {
+            this.abortController.abort();
+            return;
+        }
+
+        this.abortController = new AbortController();
         this.setLoading(true);
         this.renderMessage('user', text);
         this.inputEl.value = '';
 
-        // First, try skill dispatch. If the model maps the request to a known
-        // recipe, run the harness and render the structured result. Otherwise,
-        // fall back to a plain chat completion.
-        const dispatch = await this.services.dispatcher.dispatch(text, this.session.activeNotePath);
-        const intent = dispatch.intent;
-        const recipe = intent
-            ? this.services.recipes.find((r) => r.metadata.name === intent.recipeName) ?? null
-            : null;
+        try {
+            // First, try skill dispatch. If the model maps the request to a known
+            // recipe, run the harness and render the structured result. Otherwise,
+            // fall back to a plain chat completion.
+            const dispatch = await this.services.dispatcher.dispatch(text, this.session.activeNotePath, this.abortController.signal);
+            const intent = dispatch.intent;
+            const recipe = intent
+                ? this.services.getRecipes().find((r) => r.metadata.name === intent.recipeName) ?? null
+                : null;
 
-        if (intent && recipe) {
-            await this.runSkillFromChat(intent, recipe, dispatch);
-        } else {
-            await this.runPlainChat(text);
+            if (intent && recipe) {
+                await this.runSkillFromChat(intent, recipe, dispatch);
+            } else {
+                await this.runPlainChat(text);
+            }
+        } finally {
+            this.abortController = null;
+            this.setLoading(false);
+            this.scrollToBottom();
         }
-
-        this.setLoading(false);
-        this.scrollToBottom();
     }
 
     private async runPlainChat(text: string): Promise<void> {
-        const result = await this.services.controller.sendMessage(this.session, text);
+        const result = await this.services.controller.sendMessage(this.session, text, this.abortController?.signal);
         this.session = result.updatedSession;
         if (result.response === null) {
             this.renderMessage('assistant', '[No response from model]');
@@ -199,7 +216,7 @@ export class HuginnChatView extends ItemView {
         this.renderMessage('assistant', `Running ${recipe.metadata.name} on ${intent.targetPath}... (${intent.reason})`);
 
         const targetPath = normalizeNotePath(intent.targetPath);
-        const result = await this.services.harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {});
+        const result = await this.services.harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {}, this.abortController?.signal);
 
         if (!result.schemaValid) {
             const msg = result.schemaErrors.map((e) => e.message).join('; ');
@@ -230,10 +247,6 @@ export class HuginnChatView extends ItemView {
 
     private renderReadOnlyResult(recipe: LoadedRecipe, result: RecipeRunResult): void {
         const json = result.parsedOutput.json as Record<string, unknown> | undefined;
-        if (recipe.metadata.name === 'summary-generation' && typeof json?.summary === 'string') {
-            this.renderMessage('assistant', json.summary);
-            return;
-        }
         if (recipe.metadata.name === 'task-extraction' && Array.isArray(json?.tasks)) {
             const tasks = json.tasks as string[];
             const lines = tasks.length === 0 ? ['No actionable tasks found.'] : tasks.map((t, i) => `${i + 1}. ${t}`);
@@ -248,16 +261,21 @@ export class HuginnChatView extends ItemView {
         const bubble = this.messagesContainer.createEl('div', {
             cls: `huginn-chat-message huginn-chat-message-${role}`,
         });
-        bubble.createEl('strong', { text: role === 'user' ? 'You: ' : 'Huginn: ' });
-        const textEl = bubble.createEl('span');
-        textEl.innerText = content;
+        bubble.createEl('div', { cls: 'huginn-chat-message-role', text: role === 'user' ? 'You' : 'Huginn' });
+        const bodyEl = bubble.createEl('div', { cls: 'huginn-chat-message-body' });
+
+        if (role === 'assistant') {
+            // Render assistant responses as markdown so lists, code fences, bold, etc. format properly.
+            void MarkdownRenderer.render(this.app, content, bodyEl, this.session.activeNotePath ?? '', this);
+        } else {
+            bodyEl.innerText = content;
+        }
     }
 
     private setLoading(loading: boolean): void {
         this.isLoading = loading;
         if (this.sendButton) {
-            this.sendButton.disabled = loading;
-            this.sendButton.textContent = loading ? '…' : 'Send';
+            this.sendButton.textContent = this.abortController ? 'Stop' : 'Send';
         }
     }
 

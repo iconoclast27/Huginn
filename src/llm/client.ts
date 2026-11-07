@@ -11,14 +11,21 @@ export interface ChatMessage {
     content: string;
 }
 
+/** Minimal subset of the DOM AbortSignal that the clients need for cancellation. */
+export interface AbortSignalLike {
+    readonly aborted: boolean;
+    addEventListener(type: 'abort', listener: () => void): void;
+    removeEventListener(type: 'abort', listener: () => void): void;
+}
+
 export interface LlmClient {
     /** Complete a prompt. Returns the raw model output or null on failure. */
-    complete(prompt: string): Promise<string | null>;
+    complete(prompt: string, signal?: AbortSignalLike): Promise<string | null>;
 }
 
 export interface ChatLlmClient extends LlmClient {
-    /** Send a full message history and return the assistant's reply, or null on failure. */
-    chat(messages: ChatMessage[]): Promise<string | null>;
+    /** Send a full message history and return the assistant's reply, or null on failure / abort. */
+    chat(messages: ChatMessage[], signal?: AbortSignalLike): Promise<string | null>;
 }
 
 export class FakeLlmClient implements LlmClient {
@@ -57,9 +64,13 @@ export class OllamaChatClient implements ChatLlmClient {
         return this.chat(messages);
     }
 
-    async chat(messages: ChatMessage[]): Promise<string | null> {
+    async chat(messages: ChatMessage[], signal?: AbortSignalLike): Promise<string | null> {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.opts.timeoutMs ?? 60000);
+
+        const onExternalAbort = () => controller.abort();
+        signal?.addEventListener('abort', onExternalAbort);
+
         try {
             const res = await fetch(`${this.opts.baseUrl}/api/chat`, {
                 method: 'POST',
@@ -88,6 +99,10 @@ export class OllamaChatClient implements ChatLlmClient {
             return stripJsonFences(data.message?.content?.trim() ?? '');
         } catch (e) {
             if ((e as Error).name === 'AbortError') {
+                if (signal?.aborted) {
+                    // External abort from the user — do not log as an error.
+                    return null;
+                }
                 // eslint-disable-next-line no-console
                 console.warn('[Huginn] Ollama chat timed out');
             } else {
@@ -96,6 +111,7 @@ export class OllamaChatClient implements ChatLlmClient {
             }
             return null;
         } finally {
+            signal?.removeEventListener('abort', onExternalAbort);
             clearTimeout(timeout);
         }
     }

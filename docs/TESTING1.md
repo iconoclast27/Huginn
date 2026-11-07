@@ -136,17 +136,17 @@
 - [ ] Console shows a `POST /api/chat` request with a `system` message containing the active note body.
 - [ ] A `user` bubble appears with the typed question.
 - [ ] An `assistant` bubble appears with a model response.
-- [ ] Closing and reopening the sidebar restores the previous message history.
+- [ ] Closing and reopening the sidebar does **not** restore previous message history; the chat starts fresh.
 - [ ] Clicking **Refresh context** re-reads the active note and starts a new system-message session.
 - [ ] Typing a skill request (e.g. `tag this note`) triggers a second `POST /api/chat` dispatch call, then runs the matching skill and shows its result in the chat.
-- [ ] Read-only skills (**summary-generation**, **task-extraction**) return their result directly in the chat without opening the approval modal.
+- [ ] Read-only skill (**task-extraction**) returns its result directly in the chat without opening the approval modal.
 - [ ] Write-class skills (tag, title, links) still open the existing approval modal; approving applies the change and the chat shows the apply result.
 - [ ] **title-suggestion** sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter if necessary.
 - [ ] **tag-assignment** adds the proposed tag to frontmatter `tags`, creating frontmatter through Obsidian's normal frontmatter mechanism if necessary.
 
 ## Known limitations
 
-- v0.1.0-test.10 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **summary-generation** and **task-extraction** are read-only and return inline in chat.
+- v0.1.0-test.10 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction** is read-only and returns inline in chat.
 - Ground-truth validation currently checks only whether the proposed tag is already present in the target note's frontmatter `tags`.
 - Title suggestion sets or replaces the first `# ` heading in the note body and also sets the `title` frontmatter property; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).

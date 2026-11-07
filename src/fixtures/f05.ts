@@ -16,7 +16,6 @@ const EXPECTED_RECIPE_NAMES = [
     'tag-assignment',
     'title-suggestion',
     'link-suggestion',
-    'summary-generation',
     'task-extraction',
 ];
 

@@ -2,9 +2,9 @@
 // Huginn — F06: New Skill End-to-End with Fake LLM
 // src/fixtures/f06.ts
 //
-// Runs title-suggestion, link-suggestion, summary-generation, and task-extraction
-// through the harness with a fake LLM and a manual input gatherer. Verifies
-// schema validation and read-only apply messages.
+// Runs title-suggestion, link-suggestion, and task-extraction through the
+// harness with a fake LLM and a manual input gatherer. Verifies schema
+// validation, read-only apply messages, and the read-only noop path.
 //
 // Run: npx tsx src/fixtures/f06.ts
 // =============================================================================
@@ -25,7 +25,6 @@ interface TestCase {
 const TEST_CASES: Record<string, TestCase> = {
     'title-suggestion': { raw: JSON.stringify({ title: 'Better Home Note', reason: 'more descriptive', confidence: 0.8 }), expectApproved: true, expectApplied: true },
     'link-suggestion': { raw: JSON.stringify({ links: ['notes/alpha.md', 'notes/beta.md'], confidence: 0.7 }), expectApproved: true, expectApplied: true },
-    'summary-generation': { raw: JSON.stringify({ summary: 'A concise overview of the home note.', confidence: 0.9 }), expectApproved: null, expectApplied: null },
     'task-extraction': { raw: JSON.stringify({ tasks: ['Review home note structure', 'Add missing links'], confidence: 0.8 }), expectApproved: null, expectApplied: null },
 };
 
