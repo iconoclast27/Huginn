@@ -222,6 +222,12 @@ export class HuginnChatView extends ItemView {
             return;
         }
 
+        // If a previous abort left us loading, reset the button now.
+        if (this.isLoading) {
+            this.setLoading(false);
+            return;
+        }
+
         // Explicit user memory commands are handled locally, not dispatched as skills.
         const memoryCommand = parseUserMemoryCommand(text);
         if (memoryCommand) {
@@ -246,6 +252,12 @@ export class HuginnChatView extends ItemView {
             // recipe, run the harness and render the structured result. Otherwise,
             // fall back to a plain chat completion.
             const dispatch = await this.services.dispatcher.dispatch(text, this.session.activeNotePath, this.abortController.signal);
+
+            // If the user aborted while dispatch was in flight, do not continue.
+            if (this.abortController.signal.aborted) {
+                return;
+            }
+
             const intent = dispatch.intent;
             const recipe = intent
                 ? this.services.getRecipes().find((r) => r.metadata.name === intent.recipeName) ?? null
@@ -351,6 +363,12 @@ export class HuginnChatView extends ItemView {
         // If a request is already in flight, treat this as an interrupt.
         if (this.abortController) {
             this.abortController.abort();
+            return;
+        }
+
+        // If a previous abort left us loading, reset the button now.
+        if (this.isLoading) {
+            this.setLoading(false);
             return;
         }
 

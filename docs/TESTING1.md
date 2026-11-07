@@ -225,16 +225,17 @@
 
 ### Conditions
 - Scenario A passed.
-- A recipe that triggers a ground-truth failure is available.
+- `tag-assignment` recipe is present.
 
 ### Steps
-1. Use `tag-assignment` on a note that already contains the tag it is likely to suggest.
-2. Run the recipe from the command palette.
-3. Inspect `Agents/Huginn/MEMORY/corrections.md`.
-4. Try the same request again in chat.
+1. Open a target note and add a likely tag to its frontmatter, e.g. `tags: [ai]`.
+2. Run **Huginn: Run Huginn skill**, choose `tag-assignment`, and target that note.
+3. When the model proposes `ai`, the result shows `groundTruthValid: false`.
+4. Inspect `Agents/Huginn/MEMORY/corrections.md`.
+5. Try the same request again in chat.
 
 ### Expected results
-- [ ] The recipe result shows `groundTruthValid: false`.
+- [ ] The recipe result shows `groundTruthValid: false` because the tag already exists.
 - [ ] `corrections.md` gains an entry with `type: ground-truth` referencing `tag-assignment`.
 - [ ] On the second attempt, the model receives the correction context and should propose a different tag.
 
@@ -246,6 +247,8 @@
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
 - Chat uses **active-note context only** for plain chat responses. Skill dispatch sends a separate dispatch request to decide which recipe to run; the recipe itself then gathers its own inputs.
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
+- Huginn watches `Agents/Huginn/SKILLS/` for recipe file changes; if you replace a recipe, the new version is loaded without reloading Obsidian.
+- Non-streaming Ollama `/api/chat` may take a moment to honor an abort request; the Stop button signals abort immediately, but the underlying HTTP call may still return if Ollama has already generated the response.
 
 ## What to capture when reporting results
 

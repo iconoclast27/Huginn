@@ -109,6 +109,9 @@ export default class HuginnPlugin extends Plugin {
                 });
                 // Load recipes early so chat dispatch has the catalog available.
                 await this.loadRecipes();
+                // Watch the recipe folder so new or updated recipes are picked up
+                // without requiring an Obsidian reload.
+                this.registerRecipeFolderWatcher();
                 // eslint-disable-next-line no-console
                 console.log('[Huginn] harness initialized against Muninn API');
                 if (this.settings.warmupOnFocus) {
@@ -116,6 +119,32 @@ export default class HuginnPlugin extends Plugin {
                 }
             });
         });
+    }
+
+    private registerRecipeFolderWatcher(): void {
+        const folder = `${RECIPE_DIR}`;
+        // Obsidian does not expose a recursive file watcher directly, but it does
+        // emit 'create', 'modify', and 'delete' events for files in the vault.
+        this.registerEvent(this.app.vault.on('create', (file) => {
+            if (file.path.startsWith(folder)) {
+                void this.loadRecipes();
+            }
+        }));
+        this.registerEvent(this.app.vault.on('modify', (file) => {
+            if (file.path.startsWith(folder)) {
+                void this.loadRecipes();
+            }
+        }));
+        this.registerEvent(this.app.vault.on('delete', (file) => {
+            if (file.path.startsWith(folder)) {
+                void this.loadRecipes();
+            }
+        }));
+        this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+            if (file.path.startsWith(folder) || oldPath.startsWith(folder)) {
+                void this.loadRecipes();
+            }
+        }));
     }
 
     private async awaitMuninnReady(): Promise<MuninnApi | null> {

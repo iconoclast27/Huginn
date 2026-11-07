@@ -67,12 +67,15 @@ export class ChatController {
      * the provided messages.
      */
     async summarizeChat(messages: ChatMessage[], signal?: AbortSignalLike): Promise<string | null> {
+        const transcript = messages
+            .map((m) => `${m.role === 'user' ? 'User' : 'Huginn'}: ${m.content}`)
+            .join('\n\n');
         const prompt: ChatMessage[] = [
             {
                 role: 'system',
-                content: 'You are a concise conversation summarizer. Summarize the following user/assistant exchange, preserving facts, decisions, and context the user would want to recall in future chats. Return only the summary, with no preamble or markdown fences.',
+                content: 'You are a concise conversation summarizer. You will be given a transcript of a user/assistant chat. Produce a short paragraph summary of facts, decisions, and context the user would want to recall in future chats. Return only the summary, with no preamble, role labels, or markdown fences.',
             },
-            ...messages,
+            { role: 'user', content: `Summarize this conversation:\n\n${transcript}` },
         ];
         return this.opts.llmClient.chat(prompt, signal);
     }
