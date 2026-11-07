@@ -20,6 +20,8 @@ export interface ApprovalRequest {
 export class ApprovalModal extends Modal {
     private request: ApprovalRequest;
     private onConfirm: (approved: boolean) => void;
+    /** The most recently opened approval modal; closed by the Stop button. */
+    static activeModal: ApprovalModal | null = null;
 
     constructor(app: App, request: ApprovalRequest, onConfirm: (approved: boolean) => void) {
         super(app);
@@ -27,7 +29,16 @@ export class ApprovalModal extends Modal {
         this.onConfirm = onConfirm;
     }
 
+    static closeActive(): void {
+        const modal = ApprovalModal.activeModal;
+        if (modal) {
+            modal.close();
+            ApprovalModal.activeModal = null;
+        }
+    }
+
     onOpen(): void {
+        ApprovalModal.activeModal = this;
         const { contentEl } = this;
         contentEl.empty();
         contentEl.createEl('h2', { text: `Huginn: Approve ${this.request.recipeName}` });
@@ -71,6 +82,9 @@ export class ApprovalModal extends Modal {
     }
 
     onClose(): void {
+        if (ApprovalModal.activeModal === this) {
+            ApprovalModal.activeModal = null;
+        }
         const { contentEl } = this;
         contentEl.empty();
     }

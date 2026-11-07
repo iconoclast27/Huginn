@@ -36,7 +36,7 @@ export interface ApprovalRequest {
 
 export interface ApprovalGate {
     /** Return true to allow apply, false to reject, null to leave unapproved (tests). */
-    approve(request: ApprovalRequest): Promise<boolean | null>;
+    approve(request: ApprovalRequest, signal?: AbortSignalLike): Promise<boolean | null>;
 }
 
 export interface HarnessOptions {
@@ -118,7 +118,7 @@ export class HuginnHarness {
                     output: afterState ?? {},
                     recipeName: recipe.metadata.name,
                     targetPath,
-                });
+                }, signal);
                 if (approved === true) {
                     const routine = this.opts.applyRegistry.get(recipe.applyMethod);
                     if (!routine) {
@@ -188,7 +188,7 @@ export class ManualInputGatherer implements InputGatherer {
 export class StaticApprovalGate implements ApprovalGate {
     constructor(private decision: boolean | null) {}
 
-    async approve(): Promise<boolean | null> {
+    async approve(_request: ApprovalRequest, _signal?: AbortSignalLike): Promise<boolean | null> {
         return this.decision;
     }
 }

@@ -169,8 +169,10 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 ### Expected results
 - [ ] The send button changes to **Stop** while the request is in flight.
 - [ ] Clicking **Stop** aborts the request.
+- [ ] If the request had already opened the approval modal, clicking **Stop** closes the modal and rejects the suggestion.
 - [ ] The assistant bubble shows `[No response from model]` or similar, not a stale partial response.
 - [ ] The button returns to **Send** after abort.
+- [ ] Test with a write-class skill (e.g., `tag this note`) as well as with a plain chat question, because the approval modal must also be dismissible by **Stop**.
 
 ## Scenario G: User memory commands
 
@@ -206,7 +208,8 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 5. Close and reopen the chat sidebar, then ask a follow-up question.
 
 ### Expected results
-- [ ] The assistant replies `Chat summary saved.` after the button click.
+- [ ] After clicking **Remember chat**, an immediate `Saving chat summary...` message appears so the UI acknowledges the action.
+- [ ] The assistant replies `Chat summary saved.` once the summary completes.
 - [ ] `chat-summaries.md` contains a new append-only YAML frontmatter entry with the summary.
 - [ ] Reopening the chat injects `Summaries of earlier conversations` into the system prompt.
 - [ ] The model can refer to the earlier conversation context.

@@ -16,6 +16,7 @@ import type { LoadedRecipe, RecipeRunResult } from '../recipes/types.ts';
 import { normalizeNotePath } from './path-utils.ts';
 import { resolveOutputField } from './render-utils.ts';
 import { parseUserMemoryCommand } from '../memory/commands.ts';
+import { ApprovalModal } from './approval-modal.ts';
 
 export const HUGINN_CHAT_VIEW_TYPE = 'huginn-chat';
 
@@ -226,7 +227,10 @@ export class HuginnChatView extends ItemView {
 
         // If a request is already in flight, the Send button acts as Stop.
         if (this.abortController) {
+            // eslint-disable-next-line no-console
+            console.log('[Huginn chat] Stop clicked; aborting in-flight request.');
             this.abortController.abort();
+            ApprovalModal.closeActive();
             return;
         }
 
@@ -405,6 +409,7 @@ export class HuginnChatView extends ItemView {
 
         this.abortController = new AbortController();
         this.setLoading(true);
+        this.renderMessage('assistant', 'Saving chat summary...');
 
         try {
             const summary = await this.services.controller.summarizeChat(chatMessages, this.abortController.signal);
@@ -417,6 +422,10 @@ export class HuginnChatView extends ItemView {
                 note: summary.trim(),
             });
             this.renderMessage('assistant', 'Chat summary saved.');
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn('[Huginn chat] Remember chat failed:', (e as Error).message);
+            this.renderMessage('assistant', `Could not save chat summary: ${(e as Error).message}`);
         } finally {
             this.abortController = null;
             this.setLoading(false);
