@@ -4,11 +4,11 @@ AI assistant plugin for Obsidian — chat and skills. Huginn (Plugin 2) consumes
 
 ## Current status
 
-Latest test release: `0.1.0-test.12`. Huginn now provides a vault-aware sidebar chat plus a skill harness with human approval.
+Latest test release: `0.1.0-test.13`. Huginn now provides a vault-aware sidebar chat plus a skill harness with human approval.
 
 - **Chat:** `Huginn: Open Huginn chat` opens a sidebar view that sends the active note body to the configured Ollama chat model as context. A message-square ribbon icon is also provided. The chat resets when Obsidian reloads or the workspace is restored.
 - **Skill dispatch from chat:** User messages in the sidebar are first dispatched to the loaded recipe catalog; matched recipes run through the harness, while unmatched messages fall back to plain chat.
-- **Read-only skills inline:** `task-extraction` returns its result directly in the chat without opening the approval modal.
+- **Read-only skills inline:** `task-extraction` generates an actionable TODO list implied by the note and returns it directly in the chat without opening the approval modal.
 - **Skills:** `Huginn: Run Huginn skill` discovers `.md` recipes in `Agents/Huginn/SKILLS/`, renders them, validates the model's JSON output, shows a diff approval modal, and applies write-class suggestions for tag, title, and link recipes.
 - **Frontmatter handling:** `tag-assignment` uses Obsidian's `fileManager.processFrontMatter` to add tags. `title-suggestion` sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter when necessary.
 - **Target path normalization:** note paths entered without `.md` are automatically normalized to `.md` before the skill runs.

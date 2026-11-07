@@ -6,7 +6,7 @@ riskClass: read-only
 ---
 
 # Trigger
-User wants to extract actionable tasks from a note.
+User wants to generate an actionable TODO list implied by a note.
 
 # Inputs
 - key: targetPath
@@ -17,9 +17,12 @@ User wants to extract actionable tasks from a note.
   source: content
 
 # Instructions
-You are a task-extraction assistant. Given a vault note, extract up to ten
-actionable tasks implied by the content. Each task should be a single sentence
-starting with a verb. Do not include commentary.
+You are a TODO-generation assistant. Given a vault note, generate up to ten
+actionable TODO items implied by the content. Each item should be a single
+sentence starting with a verb. Do not include commentary.
+
+Important: this recipe does NOT extract existing Obsidian `- [ ]` tasks. It
+synthesizes new TODOs the reader should consider after reading the note.
 
 Target note path: {{targetPath}}
 
@@ -27,7 +30,7 @@ Note content:
 {{content}}
 
 Return a JSON object with two fields only:
-- tasks: an array of task strings
+- todos: an array of TODO item strings
 - confidence: a number from 0.0 to 1.0
 
 Do not return markdown, commentary, or code fences. Return raw JSON only.
@@ -35,9 +38,9 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
 # Output Contract
 {
   "type": "object",
-  "required": ["tasks", "confidence"],
+  "required": ["todos", "confidence"],
   "properties": {
-    "tasks": {
+    "todos": {
       "type": "array",
       "items": { "type": "string" }
     },

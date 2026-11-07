@@ -78,14 +78,14 @@
 
 .huginn-chat-message-user {
     align-self: flex-end;
-    background-color: var(--background-modifier-success, var(--background-secondary));
+    background-color: var(--interactive-accent, var(--background-modifier-form-field));
     border-bottom-right-radius: 2px;
-    color: var(--text-normal);
+    color: var(--text-on-accent, var(--text-normal));
 }
 
 .huginn-chat-message-assistant {
     align-self: flex-start;
-    background-color: var(--background-modifier-cover, var(--background-primary-alt));
+    background-color: var(--background-primary-alt);
     border-bottom-left-radius: 2px;
     color: var(--text-normal);
 }

@@ -37,7 +37,7 @@ const recipes: LoadedRecipe[] = [
     },
     {
         metadata: { name: 'task-extraction', version: '0.1.0', modelTier: 'capable', riskClass: 'read-only' },
-        trigger: { description: 'Extract actionable tasks from a note.' },
+        trigger: { description: 'Generate an actionable TODO list implied by a note.' },
         inputs: [],
         instructions: '',
         outputSchema: { type: 'object', properties: {}, required: [] },
@@ -100,7 +100,7 @@ const s7Client: ChatLlmClient = {
         assert(system.includes('tag-assignment'), 'S7 prompt lists tag-assignment');
         assert(system.includes('Suggest a tag for a note.'), 'S7 prompt lists tag trigger');
         assert(system.includes('task-extraction'), 'S7 prompt lists task-extraction');
-        assert(system.includes('Extract actionable tasks from a note.'), 'S7 prompt lists task trigger');
+        assert(system.includes('Generate an actionable TODO list implied by a note.'), 'S7 prompt lists task trigger');
         return '{"recipeName":"task-extraction","targetPath":"notes/alpha.md","reason":"Listed."}';
     },
 };

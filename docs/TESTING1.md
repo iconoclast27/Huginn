@@ -137,9 +137,9 @@
 - [ ] A `user` bubble appears with the typed question.
 - [ ] An `assistant` bubble appears with a model response.
 - [ ] Closing and reopening the sidebar does **not** restore previous message history; the chat starts fresh.
-- [ ] Clicking **Refresh context** re-reads the active note and starts a new system-message session.
+- [ ] Clicking **Refresh context** re-reads the active note and updates the system context without clearing the conversation history.
 - [ ] Typing a skill request (e.g. `tag this note`) triggers a second `POST /api/chat` dispatch call, then runs the matching skill and shows its result in the chat.
-- [ ] Read-only skill (**task-extraction**) returns its result directly in the chat without opening the approval modal.
+- [ ] Read-only skill (**task-extraction**) generates a TODO list from the note and returns it directly in the chat without opening the approval modal.
 - [ ] Write-class skills (tag, title, links) still open the existing approval modal; approving applies the change and the chat shows the apply result.
 - [ ] **title-suggestion** sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter if necessary.
 - [ ] **tag-assignment** adds the proposed tag to frontmatter `tags`, creating frontmatter through Obsidian's normal frontmatter mechanism if necessary.

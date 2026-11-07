@@ -7,7 +7,7 @@
 // message when the view opens or when the user explicitly refreshes context.
 // =============================================================================
 
-import { Component, ItemView, MarkdownRenderer, WorkspaceLeaf, type ViewStateResult } from 'obsidian';
+import { Component, ItemView, MarkdownRenderer, WorkspaceLeaf, type ViewStateResult, type EventRef } from 'obsidian';
 import { ChatController, type ChatSession } from '../chat/chat.ts';
 import { ChatSkillDispatcher, type DispatchResult, type DispatchIntent } from '../chat/dispatch.ts';
 import { emptyChatState, sanitizeChatState, type HuginnChatState } from './chat-state.ts';
@@ -37,6 +37,8 @@ export class HuginnChatView extends ItemView {
     private isLoading = false;
     /** Tracks the in-flight LLM request so the Send button can interrupt it. */
     private abortController: AbortController | null = null;
+    /** Obsidian event registration for active-leaf changes. */
+    private activeLeafChangeRef: EventRef | null = null;
 
     constructor(leaf: WorkspaceLeaf, services: ChatViewServices) {
         super(leaf);
@@ -65,9 +67,16 @@ export class HuginnChatView extends ItemView {
         this.container = this.contentEl.createDiv({ cls: 'huginn-chat-view' });
         this.render();
         await this.refreshContext();
+        this.activeLeafChangeRef = this.app.workspace.on('active-leaf-change', () => {
+            void this.refreshContext(false);
+        });
     }
 
     async onClose(): Promise<void> {
+        if (this.activeLeafChangeRef) {
+            this.app.workspace.offref(this.activeLeafChangeRef);
+            this.activeLeafChangeRef = null;
+        }
         this.container?.empty();
     }
 
@@ -87,9 +96,13 @@ export class HuginnChatView extends ItemView {
         if (sanitized === null) return;
         // Reset to empty state and re-read the current active note from Obsidian.
         // Do not trust the persisted activeNotePath — it may belong to a note that
-        // was open in the previous session.
+        // was open in the previous session. Defer the context read slightly so
+        // Obsidian has finished restoring the workspace active leaf.
         this.session = emptyChatState();
-        await this.refreshContext();
+        this.applySessionToDom();
+        window.setTimeout(() => {
+            void this.refreshContext();
+        }, 0);
     }
 
     private render(): void {
@@ -104,7 +117,7 @@ export class HuginnChatView extends ItemView {
             text: 'Refresh context',
         });
         refreshBtn.addEventListener('click', () => {
-            void this.refreshContext();
+            void this.refreshContext(false);
         });
 
         // Messages area
@@ -139,8 +152,20 @@ export class HuginnChatView extends ItemView {
         this.inputEl.focus();
     }
 
-    private async refreshContext(): Promise<void> {
-        this.session = await this.services.controller.createSession();
+    private async refreshContext(resetMessages = true): Promise<void> {
+        const fresh = await this.services.controller.createSession();
+        if (resetMessages) {
+            this.session = fresh;
+        } else {
+            // Keep user/assistant history but replace the system context with the
+            // currently active note. This is useful for multi-note workflows where
+            // the user wants to shift context without losing the conversation.
+            const nonSystem = this.session.messages.filter((m) => m.role !== 'system');
+            this.session = {
+                ...fresh,
+                messages: [...fresh.messages, ...nonSystem],
+            };
+        }
         this.applySessionToDom();
     }
 
@@ -157,6 +182,7 @@ export class HuginnChatView extends ItemView {
 
         this.messagesContainer.empty();
         for (const message of this.session.messages) {
+            // System messages provide context to the LLM but are not rendered as bubbles.
             if (message.role !== 'system') {
                 this.renderMessage(message.role, message.content);
             }
@@ -252,9 +278,9 @@ export class HuginnChatView extends ItemView {
 
     private renderReadOnlyResult(recipe: LoadedRecipe, result: RecipeRunResult): void {
         const json = result.parsedOutput.json as Record<string, unknown> | undefined;
-        if (recipe.metadata.name === 'task-extraction' && Array.isArray(json?.tasks)) {
-            const tasks = json.tasks as string[];
-            const lines = tasks.length === 0 ? ['No actionable tasks found.'] : tasks.map((t, i) => `${i + 1}. ${t}`);
+        if (recipe.metadata.name === 'task-extraction' && Array.isArray(json?.todos)) {
+            const todos = json.todos as string[];
+            const lines = todos.length === 0 ? ['No actionable TODOs found.'] : todos.map((t, i) => `${i + 1}. ${t}`);
             this.renderMessage('assistant', lines.join('\n'));
             return;
         }

@@ -25,7 +25,7 @@ interface TestCase {
 const TEST_CASES: Record<string, TestCase> = {
     'title-suggestion': { raw: JSON.stringify({ title: 'Better Home Note', reason: 'more descriptive', confidence: 0.8 }), expectApproved: true, expectApplied: true },
     'link-suggestion': { raw: JSON.stringify({ links: ['notes/alpha.md', 'notes/beta.md'], confidence: 0.7 }), expectApproved: true, expectApplied: true },
-    'task-extraction': { raw: JSON.stringify({ tasks: ['Review home note structure', 'Add missing links'], confidence: 0.8 }), expectApproved: null, expectApplied: null },
+    'task-extraction': { raw: JSON.stringify({ todos: ['Review home note structure', 'Add missing links'], confidence: 0.8 }), expectApproved: null, expectApplied: null },
 };
 
 async function main(): Promise<void> {
