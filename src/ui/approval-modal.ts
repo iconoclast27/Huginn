@@ -15,6 +15,8 @@ export interface ApprovalRequest {
     targetPath: string;
     diff: DiffResult;
     reason?: string;
+    /** Human-readable descriptions of ground-truth checks that passed for this suggestion. */
+    groundTruthChecks?: string[];
 }
 
 export class ApprovalModal extends Modal {
@@ -54,6 +56,14 @@ export class ApprovalModal extends Modal {
 
         if (this.request.reason) {
             contentEl.createEl('p', { text: this.request.reason });
+        }
+
+        if (this.request.groundTruthChecks && this.request.groundTruthChecks.length > 0) {
+            contentEl.createEl('h3', { text: 'Checks passed' });
+            const checksEl = contentEl.createEl('ul', { cls: 'huginn-ground-truth-checks' });
+            for (const check of this.request.groundTruthChecks) {
+                checksEl.createEl('li', { text: check });
+            }
         }
 
         const diffText = renderDiff(this.request.diff);

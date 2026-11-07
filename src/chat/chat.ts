@@ -100,6 +100,33 @@ export class ChatController {
             'You are Huginn, an AI assistant embedded in Obsidian as a vault-aware chat companion.',
             '',
             'Your job is to help the user with their notes and general knowledge. Be concise but useful.',
+        ];
+
+        // User memory and conversation summaries are injected early and marked
+        // as overriding instructions so small models do not ignore them in favor
+        // of later guidelines or active-note content.
+        if (this.opts.getUserMemoryContext) {
+            const ctx = await this.opts.getUserMemoryContext();
+            if (ctx.length > 0) {
+                parts.push(
+                    '',
+                    'CRITICAL — you MUST follow these user preferences and facts. They override any default guideline below:',
+                    ctx,
+                );
+            }
+        }
+        if (this.opts.getChatSummaryContext) {
+            const ctx = await this.opts.getChatSummaryContext();
+            if (ctx.length > 0) {
+                parts.push(
+                    '',
+                    'CRITICAL — remember these summaries of earlier conversations:',
+                    ctx,
+                );
+            }
+        }
+
+        parts.push(
             '',
             'Guidelines:',
             '- The user is looking at an Obsidian note. Use the note content below when the question is about it.',
@@ -107,19 +134,8 @@ export class ChatController {
             '- Prefer short, actionable answers. Use markdown formatting (headings, lists, code fences) when it improves readability.',
             '- Do not claim the note says something it does not. If the note lacks the answer, say so.',
             '- You cannot rename, move, delete, or otherwise modify files unless the user explicitly asks you to run a skill.',
-        ];
-        if (this.opts.getUserMemoryContext) {
-            const ctx = await this.opts.getUserMemoryContext();
-            if (ctx.length > 0) {
-                parts.push('', ctx);
-            }
-        }
-        if (this.opts.getChatSummaryContext) {
-            const ctx = await this.opts.getChatSummaryContext();
-            if (ctx.length > 0) {
-                parts.push('', ctx);
-            }
-        }
+        );
+
         if (path && content) {
             parts.push('', `Active note path: ${path}`, '', 'Note content:', '---', content, '---');
         } else {

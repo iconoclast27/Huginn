@@ -148,7 +148,8 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 - [ ] An `assistant` bubble appears with a model response.
 - [ ] Closing and reopening the sidebar does **not** restore previous message history; the chat starts fresh.
 - [ ] Clicking **Refresh context** re-reads the active note and updates the system context without clearing the conversation history.
-- [ ] Switching to a different note updates the active-note context line in the header.
+- [ ] Switching to a different note updates the active-note context line in the header and preserves the chat transcript.
+- [ ] Skill responses (status messages, results, and rejections) remain in the transcript after **Refresh context** or switching notes.
 - [ ] Typing a skill request (e.g. `tag this note`) triggers a second `POST /api/chat` dispatch call, then runs the matching skill and shows its result in the chat.
 - [ ] Read-only skills (**task-extraction**, **note-summary**, **related-notes**) render their output directly in the chat without opening the approval modal.
 - [ ] **note-summary** returns a concise paragraph summary of the active note.
@@ -173,7 +174,7 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 - [ ] The send button changes to **Stop** while the request is in flight.
 - [ ] Clicking **Stop** aborts the request.
 - [ ] If the request had already opened the approval modal, clicking **Stop** closes the modal and rejects the suggestion.
-- [ ] The assistant bubble shows `[No response from model]` or similar, not a stale partial response.
+- [ ] The assistant bubble shows `[Interrupted]` for an aborted skill run, or `[No response from model]` for an aborted plain chat request, not a stale partial response.
 - [ ] The button returns to **Send** after abort.
 - [ ] Test with a write-class skill (e.g., `tag this note`) as well as with a plain chat question, because the approval modal must also be dismissible by **Stop**.
 
@@ -276,7 +277,7 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 ## Known limitations
 
 - v0.1.0-test.18 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction**, **note-summary**, and **related-notes** are read-only and return inline in chat.
-- Ground-truth validation ships with six built-in primitives (`file-exists`, `file-not-exists`, `frontmatter-contains`, `frontmatter-not-contains`, `note-contains-text`, `note-not-contains-text`) and can be extended by registering new primitives. Recipe `description` fields are surfaced in ground-truth error messages.
+- Ground-truth validation ships with six built-in primitives (`file-exists`, `file-not-exists`, `frontmatter-contains`, `frontmatter-not-contains`, `note-contains-text`, `note-not-contains-text`) and can be extended by registering new primitives. Recipe `description` fields are surfaced in ground-truth error messages and, for passing checks, in the approval modal under **Checks passed**.
 - Title suggestion sets or replaces the first `# ` heading in the note body and also sets the `title` frontmatter property; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
 - Chat uses **active-note context only** for plain chat responses. Skill dispatch sends a separate dispatch request to decide which recipe to run; the recipe itself then gathers its own inputs.

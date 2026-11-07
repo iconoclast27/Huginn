@@ -32,6 +32,8 @@ export interface ApprovalRequest {
     output: unknown;
     recipeName: string;
     targetPath?: string;
+    /** Human-readable descriptions of ground-truth checks that passed for this suggestion. */
+    groundTruthChecks?: string[];
 }
 
 export interface ApprovalResult {
@@ -120,11 +122,15 @@ export class HuginnHarness {
                 approved = null;
                 applyResult = null;
             } else {
+                const groundTruthChecks = recipe.validation
+                    .map((rule) => rule.description)
+                    .filter((d): d is string => typeof d === 'string' && d.length > 0);
                 const approval = await this.opts.approvalGate.approve({
                     diffText: JSON.stringify(diff),
                     output: afterState ?? {},
                     recipeName: recipe.metadata.name,
                     targetPath,
+                    groundTruthChecks,
                 }, signal);
                 if (approval === null) {
                     approved = null;

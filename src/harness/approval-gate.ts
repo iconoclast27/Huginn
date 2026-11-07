@@ -29,6 +29,7 @@ export class ObsidianApprovalGate implements ApprovalGate {
                 targetPath: request.targetPath ?? '',
                 diff,
                 reason: this.describeOutput(request.output),
+                groundTruthChecks: request.groundTruthChecks,
             }, (approved, reason) => {
                 resolve({ approved, reason });
             });
@@ -42,6 +43,14 @@ export class ObsidianApprovalGate implements ApprovalGate {
                 modal.close();
                 resolve(null);
             };
+            // The abort may have fired before this promise was created (e.g.
+            // the user clicked Stop during the recipe's LLM completion). Handle
+            // that case immediately so the modal does not block on an already
+            // aborted request.
+            if (signal?.aborted) {
+                onAbort();
+                return;
+            }
             signal?.addEventListener('abort', onAbort);
         });
     }
