@@ -140,13 +140,6 @@ export class HuginnHarness {
                     key: schemaErrors.map((e) => e.message).join('; ').slice(0, 120),
                     note: `Schema validation failed: ${schemaErrors.map((e) => e.message).join('; ')}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
                 });
-            } else if (!groundTruthValid) {
-                await this.opts.corrections.append({
-                    recipe: recipe.metadata.name,
-                    type: 'ground-truth',
-                    key: groundTruthErrors.map((e) => e.message).join('; ').slice(0, 120),
-                    note: `Ground-truth check failed: ${groundTruthErrors.map((e) => e.message).join('; ')}`,
-                });
             } else if (applyResult?.applied === false) {
                 await this.opts.corrections.append({
                     recipe: recipe.metadata.name,

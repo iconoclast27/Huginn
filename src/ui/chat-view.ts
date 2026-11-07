@@ -142,6 +142,14 @@ export class HuginnChatView extends ItemView {
             void this.rememberChat();
         });
 
+        const resetBtn = header.createEl('button', {
+            cls: 'huginn-chat-reset',
+            text: 'New chat',
+        });
+        resetBtn.addEventListener('click', () => {
+            void this.resetChat();
+        });
+
         // Messages area
         this.messagesContainer = this.container.createEl('div', {
             cls: 'huginn-chat-messages',
@@ -264,6 +272,11 @@ export class HuginnChatView extends ItemView {
                 : null;
 
             if (intent && recipe) {
+                // Re-check abort before starting the heavier harness run and
+                // approval gate so a Stop click during dispatch is honored.
+                if (this.abortController.signal.aborted) {
+                    return;
+                }
                 await this.runSkillFromChat(intent, recipe, dispatch);
             } else {
                 await this.runPlainChat(text);
@@ -306,25 +319,10 @@ export class HuginnChatView extends ItemView {
         }
         if (!result.groundTruthValid) {
             const msg = result.groundTruthErrors.map((e) => e.message).join('; ');
-            // Write a correction so the retry has context, then attempt once more.
-            const corrections = this.services.getMemory?.().corrections ?? null;
-            if (corrections) {
-                await corrections.append({
-                    recipe: recipe.metadata.name,
-                    type: 'ground-truth',
-                    key: msg.slice(0, 120),
-                    note: `Ground-truth check failed: ${msg}`,
-                });
-            }
-            this.renderMessage('assistant', `First suggestion failed a vault check (${msg}). Trying again...`);
-            const retry = await harness.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {}, this.abortController?.signal);
-            if (!retry.groundTruthValid) {
-                const retryMsg = retry.groundTruthErrors.map((e) => e.message).join('; ');
-                this.renderMessage('assistant', `I had to try again, but the second attempt also failed a vault check: ${retryMsg}`);
-                return;
-            }
-            // Fall through to render the retry result.
-            await this.renderRunResult(recipe, retry);
+            // Ground-truth failure means the suggestion is already true in the
+            // vault. Report it as information, not as an error, and do not
+            // retry or write a correction.
+            this.renderMessage('assistant', `The suggestion from ${recipe.metadata.name} is already reflected in the vault (${msg}). No change needed.`);
             return;
         }
 
@@ -367,6 +365,17 @@ export class HuginnChatView extends ItemView {
             // as a compact JSON blob.
             this.renderMessage('assistant', '```json\n' + JSON.stringify(result.parsedOutput.json, null, 2) + '\n```');
         }
+    }
+
+    private resetChat(): void {
+        // Keep the active-note system context but drop all user/assistant
+        // messages so the user can start a fresh conversation without
+        // reloading Obsidian.
+        this.session = {
+            ...this.session,
+            messages: this.session.messages.filter((m) => m.role === 'system'),
+        };
+        this.applySessionToDom();
     }
 
     private async rememberChat(): Promise<void> {

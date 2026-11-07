@@ -82,7 +82,7 @@ message: No actionable TODOs found.
 7. **Diff** — `computeDiff(beforeState, afterState)` lists every change for human review.
 8. **Approve** — `ObsidianApprovalGate` opens a modal showing the diff and target; the user clicks **Approve** or **Reject**. Recipes with `Apply Method: noop` (read-only skills) skip this step.
 9. **Apply** — the routine named by `Apply Method` runs only after approval. Generic write-class primitives read their parameters from `# Apply Params`. The model cannot invoke routines directly. Read-only skills do not run an apply routine.
-10. **Learn** — if a `CorrectionsMemory` is configured, schema errors, ground-truth failures, apply failures, and rejected suggestions are appended to `Agents/Huginn/MEMORY/corrections.md`. Recent corrections are injected into the dispatcher prompt and the recipe prompt so the model is less likely to repeat the mistake. In the chat path, a ground-truth failure also triggers one automatic rerun with the fresh correction injected; if the retry still fails, the chat reports the second failure and stops.
+10. **Learn** — if a `CorrectionsMemory` is configured, schema errors, apply failures, and rejected suggestions are appended to `Agents/Huginn/MEMORY/corrections.md`. Recent corrections are injected into the dispatcher prompt and the recipe prompt so the model is less likely to repeat the mistake. Ground-truth failures are *not* written to corrections: a duplicate tag or existing file is vault state, not a model mistake.
 
 ## Source modules
 
@@ -123,12 +123,14 @@ message: No actionable TODOs found.
 | `src/fixtures/f10.ts` | Chat-state sanitization and round-trip |
 | `src/fixtures/f11.ts` | `ChatSkillDispatcher` intent parsing |
 | `src/fixtures/f12.ts` | `VaultMemoryStore` + all three memory-kind wrappers |
-| `src/fixtures/f13.ts` | Harness appends corrections on schema, ground-truth, and apply failures |
+| `src/fixtures/f13.ts` | Harness appends corrections on schema and apply failures, but not on ground-truth failures |
 | `src/fixtures/f14.ts` | User memory command parsing and context framing |
 | `src/fixtures/f15.ts` | Chat summary memory: append, summarize, and prompt injection |
 | `src/fixtures/f16.ts` | Default recipe installer seeds `Agents/Huginn/SKILLS/` |
 | `src/fixtures/f17.ts` | Ground-truth primitive registry accepts custom primitives |
 | `src/fixtures/f18.ts` | Legacy `source`/`check` validation format is rejected |
+| `src/fixtures/f19.ts` | `MuninnApiInputGatherer` normalizes missing `.md` suffix on note paths |
+| `src/fixtures/f20.ts` | `append-frontmatter-array` accepts a single value or an array of values |
 
 ## Memory system
 
@@ -142,9 +144,11 @@ Three memory kinds share the same underlying `VaultMemoryStore`:
 | **User memory** | `user-memory.md` | chat UI | chat system prompt | Things the user explicitly told Huginn to remember |
 | **Chat summary** | `chat-summaries.md` | chat UI "Remember chat" button | chat system prompt | Condensed history from long conversations |
 
-Corrections are appended when: the model returns JSON that fails schema validation; a ground-truth check fails; an apply routine fails; or the user rejects a suggestion in the approval gate. Each entry records the recipe name, failure type, affected key/value, and a short note. Recent corrections are injected into the dispatcher system prompt and into the recipe prompt before the model runs.
+Corrections are appended when: the model returns JSON that fails schema validation; an apply routine fails; or the user rejects a suggestion in the approval gate. Each entry records the recipe name, failure type, affected key/value, and a short note. Recent corrections are injected into the dispatcher system prompt and into the recipe prompt before the model runs.
 
-User memory is appended when the user types an explicit command in chat, such as `Remember that I prefer qwen2.5:14b`, `Don't suggest tags that are already in the note`, or `I prefer concise answers`. These are parsed by `parseUserMemoryCommand` and read back into the chat system prompt as `Things the user has told you`.
+Ground-truth failures (e.g., a proposed tag already exists, or a file to create already exists) are reported to the user as vault state, not as model mistakes, and are not written to corrections. In the chat path this means the assistant says "already present — no change needed" rather than retrying.
+
+User memory is appended when the user types an explicit command in chat that begins with the keyword **Remember**, such as `Remember that I prefer qwen2.5:14b` or `Remember don't suggest tags that are already in the note`. Ordinary chat that contains "don't" or "avoid" but does not begin with "Remember" is not captured. These memories are parsed by `parseUserMemoryCommand` and read back into the chat system prompt as `Things the user has told you`.
 
 Chat summaries are appended when the user clicks the **Remember chat** button in the sidebar header. The conversation (excluding system context) is sent to the LLM with a summarization prompt; the returned summary is stored in `chat-summaries.md` and read back into future chat system prompts as `Summaries of earlier conversations`.
 
@@ -167,10 +171,10 @@ The chat path is intentionally minimal in this first cut. It is not a recipe; it
 
 1. **Context strategy — active note only.** `ChatController.createSession()` reads `app.workspace.getActiveFile()` via `vault.cachedRead()` and injects the note path and body into a `system` message. The model is instructed to answer based on the active note but to fall back to general knowledge if the question is unrelated.
 2. **Message history.** `ChatSession.messages` carries `system`, `user`, and `assistant` messages. `ChatController.sendMessage()` appends the user's message, calls `ChatLlmClient.chat(messages)`, and appends the assistant reply.
-3. **UI.** `HuginnChatView` renders user/assistant bubbles, keeps the active note path in a header, provides a textarea where **Enter** sends and **Shift+Enter** inserts a newline, and shows a loading state while waiting for Ollama. A **Stop** button replaces **Send** during an in-flight request; because Ollama `/api/chat` responses are streamed, the abort is honored promptly. A **Refresh context** button re-reads the active note and starts a new session.
+3. **UI.** `HuginnChatView` renders user/assistant bubbles, keeps the active note path in a header, provides a textarea where **Enter** sends and **Shift+Enter** inserts a newline, and shows a loading state while waiting for Ollama. A **Stop** button replaces **Send** during an in-flight request; because Ollama `/api/chat` responses are streamed, the abort is honored promptly. **Refresh context** re-reads the active note and updates the system context without clearing the conversation. **New chat** clears the transcript while keeping the active-note context.
 4. **Persistence across sidebar close/reopen.** The view implements `getState`/`setState` so Obsidian restores the sidebar layout, but Huginn intentionally resets both the message history and the active note path on reload/workspace restore to avoid stale context. The active note is always re-read from Obsidian's current workspace. Clicking **Refresh context** updates the system context to the currently active note without clearing the conversation history.
 5. **Skill dispatch.** When the user sends a message, `ChatSkillDispatcher` asks the model to pick a recipe and a target note path. If a valid recipe is selected, `HuginnHarness.run()` executes it and the result is rendered in the chat. If no recipe matches, the message falls back to a plain chat completion.
-6. **Ground-truth retry in chat.** If a dispatched skill fails ground-truth validation, the chat UI records a correction and reruns the recipe **once**. The user sees an explanatory message about the first failure and, if the retry also fails, a second explanatory message.
+6. **Ground-truth reporting in chat.** If a dispatched skill fails ground-truth validation, the chat UI explains that the suggestion is already present in the vault and that no change is needed. It does not retry, because a duplicate tag or existing file is vault state rather than a model mistake.
 7. **Read-only skills inline.** Recipes with `Apply Method: noop` skip the approval gate. Their structured output is rendered as a friendly inline message: `task-extraction` shows a numbered TODO list generated from the note.
 8. **No RAG yet.** The chat does not inject vault-wide search results; skill dispatch uses the recipe's own input gatherer for vocabulary/related content.
 

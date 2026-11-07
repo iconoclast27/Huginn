@@ -59,17 +59,17 @@ export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyReg
         };
     });
 
-    // Generic primitive: append a value to a frontmatter array (e.g., tags).
+    // Generic primitive: append a value or values to a frontmatter array (e.g., tags).
     registry.register('append-frontmatter-array', async (ctx): Promise<ApplyResult> => {
         const params = ctx.recipe.applyParams ?? {};
         const key = stringParam(params, 'key', 'tags');
         const valuePath = stringParam(params, 'valuePath', 'value');
         const unique = booleanParam(params, 'unique', true);
-        const value = resolveOutputField(ctx.output, valuePath);
-        if (!value || (typeof value !== 'string' && typeof value !== 'number')) {
+        const rawValue = resolveOutputField(ctx.output, valuePath);
+        const values = normalizeAppendArray(rawValue);
+        if (values.length === 0) {
             return { applied: false, message: `No ${valuePath} provided; nothing to apply.` };
         }
-        const valueText = String(value);
 
         const targetPath = extractTargetPath(ctx.inputs);
         const file = targetPath ? resolveFile(targetPath) : null;
@@ -81,20 +81,25 @@ export function createDefaultApplyRegistry(opts: ApplyRegistryOptions): ApplyReg
             if (processFrontMatter) {
                 await processFrontMatter(file, (frontmatter) => {
                     const arr = parseFrontmatterArray(frontmatter[key]);
-                    if (!unique || !arr.includes(valueText)) arr.push(valueText);
+                    for (const valueText of values) {
+                        if (!unique || !arr.includes(valueText)) arr.push(valueText);
+                    }
                     frontmatter[key] = arr;
                 });
             } else {
                 const content = await readFile(file);
                 const { frontmatter, body } = splitFrontmatter(content);
                 const arr = parseFrontmatterArray(frontmatter[key]);
-                if (!unique || !arr.includes(valueText)) arr.push(valueText);
+                for (const valueText of values) {
+                    if (!unique || !arr.includes(valueText)) arr.push(valueText);
+                }
                 frontmatter[key] = arr;
                 await writeFile(file, joinFrontmatter(frontmatter, body));
             }
-            return { applied: true, message: `Added '${valueText}' to frontmatter ${key} of ${targetPath}.` };
+            const joined = values.map((v) => `'${v}'`).join(', ');
+            return { applied: true, message: `Added ${joined} to frontmatter ${key} of ${targetPath}.` };
         } catch (e) {
-            return { applied: false, message: `Failed to write ${key} '${valueText}' to ${targetPath}: ${(e as Error).message}` };
+            return { applied: false, message: `Failed to write ${key} to ${targetPath}: ${(e as Error).message}` };
         }
     });
 
@@ -221,6 +226,13 @@ export function joinFrontmatter(frontmatter: Record<string, unknown>, body: stri
 function parseFrontmatterArray(value: unknown): string[] {
     if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
     if (typeof value === 'string') return value.split(',').map((t) => t.trim()).filter(Boolean);
+    return [];
+}
+
+function normalizeAppendArray(value: unknown): string[] {
+    if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string' && v.length > 0);
+    if (typeof value === 'string' && value.length > 0) return [value];
+    if (typeof value === 'number') return [String(value)];
     return [];
 }
 

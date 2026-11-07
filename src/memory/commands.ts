@@ -15,11 +15,12 @@ export interface UserMemoryCommand {
     note: string;
 }
 
+/**
+ * Explicit user memory commands begin with the keyword "Remember" so the
+ * model does not misinterpret ordinary chat containing "don't" or "avoid".
+ */
 const COMMAND_PATTERNS: { type: UserMemoryCommand['type']; regex: RegExp }[] = [
-    { type: 'remember', regex: /^\s*(?:remember|note|add a memory|memorize)\s*(?:that\s*)?(.+)$/is },
-    { type: 'avoid', regex: /^\s*(?:don't|do not|avoid|never)\s*(?:you\s*)?(.+)$/is },
-    { type: 'preference', regex: /^\s*(?:i prefer|my preference is|use)\s*(?:that\s*)?(.+)$/is },
-    { type: 'fact', regex: /^\s*(?:for context|fyi|just so you know)\s*(?:that\s*)?(.+)$/is },
+    { type: 'remember', regex: /^\s*remember\b\s*(?:that\s*)?(.+)$/is },
 ];
 
 export function parseUserMemoryCommand(text: string): UserMemoryCommand | null {

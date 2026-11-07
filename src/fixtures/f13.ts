@@ -3,8 +3,9 @@
 // src/fixtures/f13.ts
 //
 // Runs a fake recipe through the harness with a fake LLM and a fake
-// CorrectionsMemory. Verifies that schema errors, ground-truth failures, and
-// apply failures each produce a correction entry.
+// CorrectionsMemory. Verifies that schema errors and apply failures produce a
+// correction entry, and that ground-truth failures ("already true in vault")
+// do NOT produce a correction.
 //
 // Run: npx tsx src/fixtures/f13.ts
 // =============================================================================
@@ -110,7 +111,8 @@ async function main(): Promise<void> {
         console.log('[F13] PASS: S1 schema error correction');
     }
 
-    // S2: ground-truth failure -> correction written.
+    // S2: ground-truth failure -> NO correction written (it is vault state, not a
+    // model mistake).
     {
         const vaultReader: VaultReader = {
             getFileFrontmatter(path: string) {
@@ -131,8 +133,8 @@ async function main(): Promise<void> {
         });
         await harness.run(recipe, { targetPath: 'notes/tagged.md' }, {});
         const ctx = await corrections.getContext('tag-suggest-test', 5);
-        assert(ctx.text.includes('ground-truth'), 'S2 correction should record ground-truth');
-        console.log('[F13] PASS: S2 ground-truth correction');
+        assert(!ctx.text.includes('ground-truth'), 'S2 should NOT record ground-truth correction');
+        console.log('[F13] PASS: S2 ground-truth failure does not write correction');
     }
 
     // S3: apply failure -> correction written.

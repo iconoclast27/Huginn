@@ -180,13 +180,15 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 ### Steps
 1. Open the Huginn chat sidebar.
 2. Type: `Remember that I prefer concise one-sentence answers.` and send.
-3. Type: `Don't suggest tags that are already in the note.` and send.
-4. Open `Agents/Huginn/MEMORY/user.md`.
-5. Ask a plain chat question.
+3. Type: `Remember don't suggest tags that are already in the note.` and send.
+4. Type a plain sentence that happens to contain "don't" or "avoid" (e.g., `I don't like long answers.`) and send.
+5. Open `Agents/Huginn/MEMORY/user.md`.
+6. Ask a plain chat question.
 
 ### Expected results
-- [ ] The assistant replies confirming each memory was saved.
-- [ ] `user.md` contains two append-only YAML frontmatter entries.
+- [ ] The assistant replies confirming the two "Remember" messages were saved.
+- [ ] `user.md` contains exactly two append-only YAML frontmatter entries.
+- [ ] The message that did not begin with "Remember" was **not** captured as a memory.
 - [ ] The chat system prompt for subsequent messages includes the `Things the user has told you` block.
 - [ ] The model's later answers respect the stated preferences (at least attempts conciseness).
 
@@ -208,6 +210,7 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 - [ ] `chat-summaries.md` contains a new append-only YAML frontmatter entry with the summary.
 - [ ] Reopening the chat injects `Summaries of earlier conversations` into the system prompt.
 - [ ] The model can refer to the earlier conversation context.
+- [ ] The **New chat** button clears the visible transcript while keeping the active-note context.
 
 ## Scenario I: Report-back verbosity
 
@@ -224,6 +227,7 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 ### Expected results
 - [ ] In `verbose` mode the chat shows status messages like `Running tag-assignment on notes/gamma.md...`.
 - [ ] In `minimal` mode the status message is suppressed; only the final result or failure is shown.
+- [ ] Use `tag-assignment` (not `suggest-tags`, which is no longer shipped) for this test.
 
 ## Scenario J: Corrections after failure
 
@@ -235,16 +239,13 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 1. Open a target note and add a likely tag to its frontmatter, e.g. `tags: [ai]`.
 2. Run **Huginn: Run Huginn skill**, choose `tag-assignment`, and target that note.
 3. When the model proposes `ai`, the result shows `groundTruthValid: false`.
-4. Inspect `Agents/Huginn/MEMORY/corrections.md`.
-5. Try the same request again in chat.
+4. Try the same request in chat (e.g., `tag notes/gamma.md`).
 
 ### Expected results
 - [ ] The recipe result from the command-modal run shows `groundTruthValid: false` because the tag already exists.
-- [ ] `corrections.md` gains an entry with `type: ground-truth` referencing `tag-assignment`.
-- [ ] In chat, when the same request triggers the same ground-truth failure, Huginn automatically retries **once**.
-- [ ] The assistant tells the user the first suggestion failed a vault check and that it is trying again.
-- [ ] If the retry passes, the chat shows the final applied/read-only result.
-- [ ] If the retry also fails, the assistant reports the second failure and stops; it does not loop forever.
+- [ ] `corrections.md` does **not** gain a ground-truth entry; a duplicate tag is vault state, not a model mistake.
+- [ ] In chat, when the same request triggers the same ground-truth failure, the assistant explains that the suggestion is already present and that no change is needed.
+- [ ] Huginn does **not** retry the failed ground-truth check or loop indefinitely.
 
 ## Known limitations
 
@@ -256,6 +257,8 @@ Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if
 - The warmup toggle triggers on Huginn initialization, not on UI focus or keystrokes.
 - Huginn watches `Agents/Huginn/SKILLS/` for recipe file changes; if you replace a recipe, the new version is loaded without reloading Obsidian.
 - Chat now streams the Ollama `/api/chat` response, so the **Stop** button can interrupt an in-flight generation promptly.
+- Chat **New chat** clears the visible transcript while preserving the active-note system context.
+- Ground-truth failures (e.g., a tag already exists) are reported as information, not retried, and are not written to corrections memory.
 
 ## What to capture when reporting results
 

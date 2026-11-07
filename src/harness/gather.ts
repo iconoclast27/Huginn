@@ -12,6 +12,7 @@ import type { App, TFile } from 'obsidian';
 import type { MuninnApi, TagInfo, Hit, ChunkRef } from '../muninn-api.ts';
 import type { LoadedRecipe, GatheredInput, RecipeInput } from '../recipes/types.ts';
 import type { InputGatherer } from './harness.ts';
+import { normalizeNotePath } from '../ui/path-utils.ts';
 
 export interface MuninnVaultLike {
     getAbstractFileByPath(path: string): unknown;
@@ -41,21 +42,23 @@ export class MuninnApiInputGatherer implements InputGatherer {
 
     private async resolveInput(input: RecipeInput, params: Record<string, unknown>, resolved: Record<string, unknown>): Promise<unknown> {
         switch (input.source) {
-            case 'recipe-param':
-                return params[input.key] ?? this.opts.defaultTargetPath ?? null;
+            case 'recipe-param': {
+                const value = params[input.key] ?? this.opts.defaultTargetPath ?? null;
+                return input.key === 'targetPath' && typeof value === 'string' ? normalizeNotePath(value) : value;
+            }
             case 'content': {
-                const path = String(resolved.targetPath ?? params.targetPath ?? this.opts.defaultTargetPath ?? '');
+                const path = normalizeNotePath(String(resolved.targetPath ?? params.targetPath ?? this.opts.defaultTargetPath ?? ''));
                 return this.gatherContent(path);
             }
             case 'vocabulary':
                 return this.gatherVocabulary();
             case 'query': {
                 const queryKey = input.queryKey ?? input.key;
-                const query = String(resolved[queryKey] ?? params[queryKey] ?? '');
+                const query = normalizeNotePath(String(resolved[queryKey] ?? params[queryKey] ?? ''));
                 return this.gatherQuery(query);
             }
             case 'path': {
-                const path = String(params[input.key] ?? this.opts.defaultTargetPath ?? '');
+                const path = normalizeNotePath(String(params[input.key] ?? this.opts.defaultTargetPath ?? ''));
                 return this.gatherRelatedChunks(path);
             }
             case 'constant':
