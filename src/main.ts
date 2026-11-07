@@ -20,6 +20,7 @@ import { ObsidianMemoryStorage } from './memory/obsidian-storage.ts';
 import { CorrectionsMemory, UserMemory, ChatSummaryMemory } from './memory/kinds.ts';
 import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
 import { loadRecipes } from './recipes/loader.ts';
+import { installDefaultRecipes } from './recipes/installer.ts';
 import type { LoadedRecipe } from './recipes/types.ts';
 import type { MuninnApi } from './muninn-api.ts';
 import { RecipeChooserModal } from './ui/recipe-modal.ts';
@@ -74,6 +75,14 @@ export default class HuginnPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: 'install-default-recipes',
+            name: 'Install default Huginn skills',
+            callback: () => {
+                void this.installDefaultRecipes(false);
+            },
+        });
+
         this.registerView(
             HUGINN_CHAT_VIEW_TYPE,
             (leaf) => new HuginnChatView(leaf, this.createChatViewServices()),
@@ -107,6 +116,17 @@ export default class HuginnPlugin extends Plugin {
                     groundTruthValidator: new VaultGroundTruthValidator(new ObsidianVaultReader(this.app)),
                     corrections: this.correctionsMemory,
                 });
+                // Ensure default recipes are seeded on first run so users do not
+                // need to manually copy recipe files after installing the plugin.
+                const installResult = await installDefaultRecipes(this.app.vault, { force: false });
+                if (installResult.installed > 0) {
+                    new Notice(`Huginn installed ${installResult.installed} default skill recipe(s) in ${RECIPE_DIR}`);
+                }
+                if (installResult.errors.length > 0) {
+                    // eslint-disable-next-line no-console
+                    console.warn('[Huginn] recipe seed errors:', installResult.errors);
+                }
+
                 // Load recipes early so chat dispatch has the catalog available.
                 await this.loadRecipes();
                 // Watch the recipe folder so new or updated recipes are picked up
@@ -302,6 +322,21 @@ export default class HuginnPlugin extends Plugin {
         if (leaf === null) return;
         await leaf.setViewState({ type: HUGINN_CHAT_VIEW_TYPE, active: true });
         this.app.workspace.revealLeaf(leaf);
+    }
+
+    private async installDefaultRecipes(force: boolean): Promise<void> {
+        const result = await installDefaultRecipes(this.app.vault, { force });
+        const parts: string[] = [];
+        if (result.installed > 0) parts.push(`${result.installed} installed`);
+        if (result.skipped > 0) parts.push(`${result.skipped} skipped (already present)`);
+        if (result.overwritten > 0) parts.push(`${result.overwritten} overwritten`);
+        if (result.errors.length > 0) parts.push(`${result.errors.length} errors`);
+        new Notice(`Huginn default skills: ${parts.join(', ') || 'no changes'}`);
+        if (result.errors.length > 0) {
+            // eslint-disable-next-line no-console
+            console.warn('[Huginn] install default recipes errors:', result.errors);
+        }
+        await this.loadRecipes();
     }
 }
 

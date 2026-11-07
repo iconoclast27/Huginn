@@ -18,6 +18,14 @@
 5. Reload Obsidian if prompted.
 6. Wait for Muninn's initial reindex to complete before testing Huginn.
 
+## Install default Huginn skills
+
+Huginn can seed the vault's `Agents/Huginn/SKILLS/` folder automatically, but if the recipes are missing or stale:
+
+1. Open the Obsidian command palette.
+2. Run **Huginn: Install default Huginn skills**.
+3. If you already have old recipe files and want to replace them, delete them first or run the command after removing stale files.
+
 ## Configure Huginn
 
 1. Open **Obsidian Settings → Huginn Settings**.
@@ -29,13 +37,9 @@
 
 ## Place skill recipes
 
-1. In the vault, create the folder `Agents/Huginn/SKILLS/` if it does not exist.
-2. Copy the four shipped recipes from the repo into that folder:
-   - `src/recipes/tag-assignment.md`
-   - `src/recipes/title-suggestion.md`
-   - `src/recipes/link-suggestion.md`
-   - `src/recipes/task-extraction.md`
-3. Reload Obsidian so the vault index picks up the new files.
+1. Run **Huginn: Install default Huginn skills** from the command palette.
+2. Verify the folder `Agents/Huginn/SKILLS/` now contains `tag-assignment.md`, `title-suggestion.md`, `link-suggestion.md`, and `task-extraction.md`.
+3. If you previously had old recipe files, delete them first so the installer can write fresh copies.
 
 ## Scenario A: Huginn harness discovers Muninn
 

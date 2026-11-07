@@ -126,6 +126,7 @@ message: No actionable TODOs found.
 | `src/fixtures/f13.ts` | Harness appends corrections on schema, ground-truth, and apply failures |
 | `src/fixtures/f14.ts` | User memory command parsing and context framing |
 | `src/fixtures/f15.ts` | Chat summary memory: append, summarize, and prompt injection |
+| `src/fixtures/f16.ts` | Default recipe installer seeds `Agents/Huginn/SKILLS/` |
 
 ## Memory system
 
