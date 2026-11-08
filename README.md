@@ -4,7 +4,7 @@ AI assistant plugin for Obsidian — chat and skills. Huginn (Plugin 2) consumes
 
 ## Current status
 
-Latest test release: `0.1.0-test.18`. Huginn provides a vault-aware sidebar chat plus a skill harness with human approval.
+Latest test release: `0.1.0-test.20`. Huginn provides a vault-aware sidebar chat plus a skill harness with human approval.
 
 - **Chat:** `Huginn: Open Huginn chat` opens a sidebar view that sends the active note body to the configured Ollama chat model as context. A message-square ribbon icon is also provided. The chat resets when Obsidian reloads or the workspace is restored. Use **New chat** to clear the transcript without reloading Obsidian.
 - **Skill dispatch from chat:** User messages in the sidebar are first dispatched to the loaded recipe catalog; matched recipes run through the harness, while unmatched messages fall back to plain chat.
@@ -37,7 +37,7 @@ The production bundle is written to `main.js`.
 npm run fixtures
 ```
 
-Runs F01–F24, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the six shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, chat skill-dispatch intent parsing, vault memory store, corrections wiring, user memory commands, chat summary memory, default recipe install/reset, ground-truth primitive registry, legacy-format rejection, gatherer path normalization, generic array-valued apply, new read-only recipes, task-extraction verbosity, and note-text primitives.
+Runs F01–F25, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the six shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, chat skill-dispatch intent parsing, vault memory store, corrections wiring, user memory commands, chat summary memory, default recipe install/reset, ground-truth primitive registry, legacy-format rejection, gatherer path normalization, generic array-valued apply, new read-only recipes, task-extraction verbosity, note-text primitives, and ground-truth descriptions in the approval gate.
 
 ## Commands
 

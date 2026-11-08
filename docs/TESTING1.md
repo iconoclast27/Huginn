@@ -1,4 +1,4 @@
-# Huginn Smoke Test Scenario v0.1.0-test.18
+# Huginn Smoke Test Scenario v0.1.0-test.20
 
 ## Environment
 
@@ -7,13 +7,13 @@
 - A chat-capable model pulled, e.g. `qwen2.5:14b` or `qwen3.5:4b`.
 - Muninn `0.2.0-test.15` (or later) installed and enabled.
 - Vault already indexed by Muninn (run **Muninn: Force reindex vault** if unsure).
-- Huginn `0.1.0-test.18` installed via BRAT.
+- Huginn `0.1.0-test.20` installed via BRAT.
 
 ## Install Huginn via BRAT
 
 1. Install the BRAT plugin in Obsidian if it is not already installed.
 2. Open **Obsidian Settings → Community Plugins → BRAT**.
-3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.18`.
+3. Add a beta plugin with the repository `iconoclast27/Huginn` and the release tag `0.1.0-test.20`.
 4. Enable the **Huginn** plugin in Obsidian settings.
 5. Reload Obsidian if prompted.
 6. Wait for Muninn's initial reindex to complete before testing Huginn.
@@ -276,7 +276,7 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 
 ## Known limitations
 
-- v0.1.0-test.18 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction**, **note-summary**, and **related-notes** are read-only and return inline in chat.
+- v0.1.0-test.20 applies write-class suggestions for **tag-assignment**, **title-suggestion**, and **link-suggestion** after approval. **task-extraction**, **note-summary**, and **related-notes** are read-only and return inline in chat.
 - Ground-truth validation ships with six built-in primitives (`file-exists`, `file-not-exists`, `frontmatter-contains`, `frontmatter-not-contains`, `note-contains-text`, `note-not-contains-text`) and can be extended by registering new primitives. Recipe `description` fields are surfaced in ground-truth error messages and, for passing checks, in the approval modal under **Checks passed**.
 - Title suggestion sets or replaces the first `# ` heading in the note body and also sets the `title` frontmatter property; it does not rename the file.
 - Link suggestion appends a `## Related` section with `[[path]]` wikilinks (`.md` stripped).
