@@ -69,8 +69,8 @@ export class HuginnHarness {
     ): Promise<RecipeRunResult> {
         const inputs = await this.opts.inputGatherer.gather(recipe, params);
         const corrections = this.opts.corrections
-            ? await this.opts.corrections.getContext(recipe.metadata.name, 5)
-            : { text: '' };
+        ? await this.opts.corrections.getContext(recipe.metadata.name, 5)
+        : { text: '' };
         const rendered = renderRecipe(createRenderContext(recipe, inputs), corrections.text);
 
         const raw = await this.opts.llmClient.complete(rendered.prompt, signal);
@@ -83,8 +83,10 @@ export class HuginnHarness {
         const schemaErrors: ValidationError[] = [];
         let groundTruthValid = true;
         const groundTruthErrors: ValidationError[] = [];
+        let clientFailed = false; // Infrastructure failure (LLM returned null) — not a model mistake.
 
         if (raw === null) {
+            clientFailed = true;
             schemaErrors.push({ path: '', message: 'LLM client returned null' });
         } else {
             try {
@@ -123,14 +125,14 @@ export class HuginnHarness {
                 applyResult = null;
             } else {
                 const groundTruthChecks = recipe.validation
-                    .map((rule) => rule.description)
-                    .filter((d): d is string => typeof d === 'string' && d.length > 0);
+                .map((rule) => rule.description)
+                .filter((d): d is string => typeof d === 'string' && d.length > 0);
                 const approval = await this.opts.approvalGate.approve({
                     diffText: JSON.stringify(diff),
-                    output: afterState ?? {},
-                    recipeName: recipe.metadata.name,
-                    targetPath,
-                    groundTruthChecks,
+                                                                      output: afterState ?? {},
+                                                                      recipeName: recipe.metadata.name,
+                                                                      targetPath,
+                                                                      groundTruthChecks,
                 }, signal);
                 if (approval === null) {
                     approved = null;
@@ -151,7 +153,7 @@ export class HuginnHarness {
                                 recipe: recipe.metadata.name,
                                 type: 'refusal',
                                 key: (reason ?? 'user rejected suggestion').slice(0, 120),
-                                note: reason ? `User rejected suggestion: ${reason}` : 'User rejected the suggested change via the approval gate.',
+                                                               note: reason ? `User rejected suggestion: ${reason}` : 'User rejected the suggested change via the approval gate.',
                             });
                         }
                     }
@@ -159,20 +161,22 @@ export class HuginnHarness {
             }
         }
 
-        if (this.opts.corrections) {
+        // Infra failures (timeout/abort/HTTP error) are not model mistakes:
+        // record corrections only for runs where the model produced output.
+        if (this.opts.corrections && !clientFailed) {
             if (!schemaValid) {
                 await this.opts.corrections.append({
                     recipe: recipe.metadata.name,
                     type: 'schema-error',
                     key: schemaErrors.map((e) => e.message).join('; ').slice(0, 120),
-                    note: `Schema validation failed: ${schemaErrors.map((e) => e.message).join('; ')}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
+                                                   note: `Schema validation failed: ${schemaErrors.map((e) => e.message).join('; ')}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
                 });
             } else if (applyResult?.applied === false && !applyResult.message.startsWith('Rejected')) {
                 await this.opts.corrections.append({
                     recipe: recipe.metadata.name,
                     type: 'apply-failed',
                     key: applyResult.message.slice(0, 120),
-                    note: `Apply failed: ${applyResult.message}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
+                                                   note: `Apply failed: ${applyResult.message}. Output was: ${JSON.stringify(parsedOutput.json ?? null).slice(0, 400)}`,
                 });
             }
         }
