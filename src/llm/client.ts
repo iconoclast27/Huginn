@@ -56,12 +56,12 @@ export interface OllamaChatOptions {
 export class OllamaChatClient implements ChatLlmClient {
     constructor(private opts: OllamaChatOptions) {}
 
-    async complete(prompt: string): Promise<string | null> {
+    async complete(prompt: string, signal?: AbortSignalLike): Promise<string | null> {
         const messages: ChatMessage[] = [
             ...(this.opts.systemPrompt ? [{ role: 'system' as const, content: this.opts.systemPrompt }] : []),
             { role: 'user', content: prompt },
         ];
-        return this.chat(messages);
+        return this.chat(messages, signal);
     }
 
     async chat(messages: ChatMessage[], signal?: AbortSignalLike): Promise<string | null> {
@@ -95,7 +95,11 @@ export class OllamaChatClient implements ChatLlmClient {
                 console.warn('[Huginn] Ollama chat HTTP', res.status, body.slice(0, 1000));
                 return null;
             }
-            return await this.readStreamingResponse(res, signal);
+            // Poll the controller's signal inside the stream loop, not the external
+            // arg: the user's abort is routed into the controller by onExternalAbort,
+            // and the internal timeout aborts there too. Polling the external arg
+            // leaves the loop deaf to both (Scenario F).
+            return await this.readStreamingResponse(res, controller.signal);
         } catch (e) {
             if ((e as Error).name === 'AbortError') {
                 if (signal?.aborted) {

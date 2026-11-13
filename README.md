@@ -37,7 +37,7 @@ The production bundle is written to `main.js`.
 npm run fixtures
 ```
 
-Runs F01–F25, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the six shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, chat skill-dispatch intent parsing, vault memory store, corrections wiring, user memory commands, chat summary memory, default recipe install/reset, ground-truth primitive registry, legacy-format rejection, gatherer path normalization, generic array-valued apply, new read-only recipes, task-extraction verbosity, note-text primitives, and ground-truth descriptions in the approval gate.
+Runs F01–F27, covering harness end-to-end, settings, ground truth, approval, recipe parsing, the six shipped skills, content gathering, write-class apply routines, `.md` path normalization, chat-state sanitization, chat skill-dispatch intent parsing, vault memory store, corrections wiring, user memory commands, chat summary memory, default recipe install/reset, ground-truth primitive registry, legacy-format rejection, gatherer path normalization, generic array-valued apply, new read-only recipes, task-extraction verbosity, note-text primitives, ground-truth descriptions in the approval gate, infra failures never recorded as corrections, and the **Stop** abort reaching the streaming loop on both the chat path and the harness `complete()` path.
 
 ## Commands
 

@@ -135,6 +135,9 @@ message: No actionable TODOs found.
 | `src/fixtures/f22.ts` | `related-notes` read-only recipe end-to-end |
 | `src/fixtures/f23.ts` | `task-extraction` uses the chat `verbosity` setting to tune output detail |
 | `src/fixtures/f24.ts` | Built-in `note-contains-text` and `note-not-contains-text` ground-truth primitives |
+| `src/fixtures/f25.ts` | Ground-truth rule descriptions reach the approval gate |
+| `src/fixtures/f26.ts` | Infra failures (null LLM client) are reported as invalid but never recorded as corrections |
+| `src/fixtures/f27.ts` | Scenario F: the abort reaches the stream loop — both the chat leg and the harness `complete()` leg |
 
 ## Memory system
 

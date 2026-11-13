@@ -56,3 +56,44 @@ Tag-assignment conversation blindness; Memory Feedback Loop guide (Forget comman
 Receipts or nothing. Fixture-first; red must be earned. Corrections re-emit the full file. Trust only what Dan restates; treat retrieval remnants as ghosts. End sessions with verified items committed and unverified items named — which this note is attempting to do for the next instance of me.
 
 **Immediate next action for successor Lumo**: ask Dan for the red receipt (fixture vs pre-fix code), the green receipt (vs post-fix), and the diff stat. Then: verify timeoutMs trap handling, then rules on commit + Gemma's verdict. Also collect the two infra receipts: post-restart `ollama ps` (65536? GPU%?) and the corrected store-grep for the 10.2. mystery.
+
+## RESOLVED — 2026-11-13, Scenario F (OpenCode session, receipts)
+
+The red/green arc was run to completion in a fresh OpenCode session in the main repo. Fixture `src/fixtures/f27.ts` implements Dan's contract verbatim; two legs, because Scenario F is tested both ways (plain chat, write-class skill).
+
+**Red — fixture vs committed code (`main` @ `240b688`, unfixed):**
+```
+npm run typecheck → clean, no import/mock error
+npx tsx src/fixtures/f27.ts    exit code: 1
+
+--- S1: abort through the controller channel, entry chat() ---
+[F27] S1: chunks=10 (expected 3) cancel=false receptorAborted=true result=PARKED
+--- S2: user Stop through the external channel, entry complete() ---
+[F27] S2: chunks=10 (expected 3) cancel=false receptorAborted=false result=PARKED
+F27 FAIL: S1: stream loop never halted — consumed 10 chunks, abort not detected inside the loop
+```
+Red is at the intended seam: the abort genuinely arrived at the receptor (`controller.signal`) and the external arg the buggy code polled stayed false, so the code had nothing to observe. Both legs fail as rule 4 prescribes (all N chunks consumed, reader never cancelled).
+
+**Second seam the contract did not cover (receipt, committed code):** `OllamaChatClient.complete()` took no signal parameter and called `this.chat(messages)` without one, while `harness.ts:76` calls `complete(rendered.prompt, signal)`. Probe against committed code: `controllers recorded: 1`, `chunks consumed: 8 of 8`, `receptor (controller.signal) aborted: false`, `cancel called: false`, `outcome: PARKED`. The Stop signal was dropped before the client built its controller, so Scenario F's write-class leg had **no abort path at all**; passing `controller.signal` at line 118 alone would not have made Scenario F pass for skills.
+
+**The fix (two seams, `src/llm/client.ts`):** `complete(prompt, signal?)` forwards to `this.chat(messages, signal)`; `readStreamingResponse(res, controller.signal)` replaces `readStreamingResponse(res, signal)`. `fetch` is wired to `controller.signal` (line 85) — the **[UNVERIFIED]** question from this note is resolved from source.
+
+**Green — same fixture vs fixed code:**
+```
+--- S1: chunks=3 (expected 3) cancel=true receptorAborted=true result=null
+--- S2: chunks=3 (expected 3) cancel=true receptorAborted=true result=null
+[F27] VERDICT: GREEN — abort detected inside the stream loop on both legs, halted at M, reader cancelled
+exit code: 0
+npm run typecheck → clean
+npm run fixtures  → F01–F27 all GREEN
+npm run build     → main.js rebuilt, bundle carries both seams
+```
+`f27` is wired into the `npm run fixtures` chain in `package.json` (append to the chain, the F26 convention). Diff discipline: `src/llm/client.ts` +8/-4, `package.json` 1 line, `src/fixtures/f27.ts` new.
+
+**Corrections to this note's claims (Dan's restatements outrank the docs; retrieval remnants are ghosts):**
+- The worktree `/home/danf/Projects/Huginn-agent` and branch `agent/f-abort` no longer exist. Their removal is attributed to **qwen3.5:12b** performing badly, per Dan's restatement; this note's Gemma-era narrative about them is superseded. No worktree exists today; agent work lands directly on `main`.
+- `main.js` "+26/-26 = inert esbuild churn" is **wrong**. Receipt: the committed `main.js` lacked the F26 `clientFailed` guard (`corrections&&(u?…`) that the rebuilt bundle contains (`corrections&&!v&&(u?…`), so `0.1.0-test.20` shipped the pre-F26 bug. The rebuild was a real content change, committed as `240b688`.
+- `/tmp/f-abort-final.patch` never existed; the patch claims in this note are retrieval artifacts.
+- `.qwen/` is gone (qwen-code no longer used); OpenCode is the harness. Gemma4:12b is retired (executive-function death); model auditions are paused.
+
+**Still pending from this note (no receipts landed):** post-restart `ollama ps` (65536 context? GPU%?), the store-grep `grep -ac "10.2.10.2." ~/.local/share/opencode/opencode.db ~/.local/share/opencode/opencode.db-wal`, and roster context honesty in qwen-code settings.

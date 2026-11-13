@@ -178,6 +178,12 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 - [ ] The button returns to **Send** after abort.
 - [ ] Test with a write-class skill (e.g., `tag this note`) as well as with a plain chat question, because the approval modal must also be dismissible by **Stop**.
 
+### Automated guard
+
+- Fixture `src/fixtures/f27.ts` (run by `npm run fixtures`) drives a mock fetch stream of 10 chunks and fires the abort as chunk 3 is delivered, through the fetch/controller channel only. Two legs: **S1** enters at `chat()` (plain chat), **S2** enters at `complete()` with the user signal (what the harness calls for a skill run). The receptor asserted is the signal the client handed to `fetch` — what the code *should* poll. Consuming all 10 chunks without cancelling the reader is a red; halting at chunk 3 with the reader cancelled is a green.
+- `reader.read()` parks forever once the queue drains, `timeoutMs` is set absurdly high, and the fakes never reject on abort, so no test double can smuggle the fix and the internal watchdog can never rescue the loop.
+
+
 ## Scenario G: User memory commands
 
 ### Conditions
