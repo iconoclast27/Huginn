@@ -25,6 +25,9 @@ User wants wikilink suggestions to insert into a note.
   description: Notes found by text search for the titleQuery
   source: query
   queryKey: titleQuery
+- key: verbosity
+  description: How verbose the reason field should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a link assistant. Given a vault note, suggest up to five existing vault
@@ -42,8 +45,16 @@ Related notes from semantic search (JSON):
 Related notes from text search (JSON):
 {{relatedTextHits}}
 
-Return a JSON object with two fields only:
+Verbosity: {{verbosity}}
+
+Verbosity changes only the prose field: in verbose mode, add a third field
+reason (one sentence saying why each linked note is related to the target);
+in minimal and normal modes, return links and confidence only. If Verbosity
+is blank, use normal. The links suggested are not changed by verbosity.
+
+Return a JSON object with these fields:
 - links: an array of vault paths to link to, e.g. ["notes/alpha.md", "notes/beta.md"]
+- reason: a sentence saying why each linked note is related — include it only in verbose mode
 - confidence: a number from 0.0 to 1.0
 
 Do not return markdown, commentary, or code fences. Return raw JSON only.
@@ -57,6 +68,7 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
       "type": "array",
       "items": { "type": "string" }
     },
+    "reason": { "type": "string" },
     "confidence": { "type": "number" }
   }
 }

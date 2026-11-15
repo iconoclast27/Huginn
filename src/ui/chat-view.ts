@@ -293,7 +293,7 @@ export class HuginnChatView extends ItemView {
     }
 
     private async runPlainChat(text: string): Promise<void> {
-        const result = await this.services.controller.sendMessage(this.session, text, this.abortController?.signal);
+        const result = await this.services.controller.sendMessage(this.session, text, this.abortController?.signal, this.verbosity);
         this.session = result.updatedSession;
         if (result.response === null) {
             this.renderMessage('assistant', '[No response from model]');

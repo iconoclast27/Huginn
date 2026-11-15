@@ -15,6 +15,9 @@ User wants a concise summary of a note.
 - key: content
   description: Full text content of the target note
   source: content
+- key: verbosity
+  description: How verbose the summary should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a summarization assistant. Read the note below and produce a concise
@@ -24,6 +27,12 @@ Target note path: {{targetPath}}
 
 Note content:
 {{content}}
+
+Verbosity: {{verbosity}}
+
+Verbosity changes length inside the 1-3 sentence limit: minimal = one sentence,
+normal = two sentences, verbose = up to three sentences naming which sections of
+the note the summary draws on. If Verbosity is blank, use normal.
 
 Return a JSON object with two fields only:
 - summary: the concise paragraph summary

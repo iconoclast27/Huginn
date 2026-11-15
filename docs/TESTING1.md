@@ -233,21 +233,42 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 
 ## Scenario I: Report-back verbosity
 
+Verbosity is the model's response length for text generation: it changes how
+full the prose fields of a recipe's output are, and how long a plain-chat answer
+is. It does not change the structured values (tags, titles, links, notes, TODO
+items) and it is not a UI terseness setting — the chat's status line is the
+incidental side effect.
+
 ### Conditions
 - Scenario A passed.
 - All six shipped recipes are present.
+- A note `notes/gamma.md` with several paragraphs, headings, and candidate tags is open.
+- The developer console (Ctrl+Shift+I) is open for the command-modal leg.
 
 ### Steps
 1. Open **Huginn Settings** and set **Report-back verbosity** to `verbose`.
 2. In chat, run a read-only skill whose output varies with verbosity: `extract tasks from notes/gamma.md`.
-3. Set **Report-back verbosity** to `minimal`.
-4. Run the same request again.
+3. In chat, ask a plain question that invites explanation, e.g. `What does this note argue, and what is weak about it?`.
+4. In chat, run `tag notes/gamma.md` and `summarize notes/gamma.md`, approving the tag proposal.
+5. Set **Report-back verbosity** to `minimal`.
+6. Run the same chat requests again (steps 2, 3, 4).
+7. With the console open, run **Huginn: Run Huginn skill**, choose `task-extraction`, target `notes/gamma.md`, and expand the `[Huginn] recipe result:` object in the console to read `renderedPrompt`.
+8. Set verbosity to `normal` and run **Huginn: Run Huginn skill** → `link-suggestion` on `notes/gamma.md`; read `renderedPrompt` in the console, then approve the modal.
 
 ### Expected results
-- [ ] In `verbose` mode the chat shows a status message like `Running task-extraction on notes/gamma.md...`.
 - [ ] In `verbose` mode the returned TODOs include short parenthetical rationales because `task-extraction` receives `verbosity: verbose`.
-- [ ] In `minimal` mode the status message is suppressed; only the final result or failure is shown.
 - [ ] In `minimal` mode the returned TODOs do not include rationales.
+- [ ] In `verbose` mode the plain-chat answer is one to two full paragraphs; in `minimal` mode the same question is answered in one or two short sentences.
+- [ ] In `verbose` mode the `tag-assignment` approval modal's `Reason` line is a fuller sentence naming which vocabulary tags matched; in `minimal` mode it is a short clause. The proposed tags themselves do not change between modes.
+- [ ] In `verbose` mode the `note-summary` summary is up to three sentences naming which sections it draws on; in `minimal` mode it is one sentence. The summary stays within the recipe's 1-3 sentence limit in every mode.
+- [ ] In `verbose` mode the `link-suggestion` approval modal's JSON contains a `reason` field; in `minimal` and `normal` modes it contains only `links` and `confidence`. Approving appends the `## Related` section in every mode.
+- [ ] The `renderedPrompt` from the command-modal run contains a `Verbosity: verbose` line with the setting value, and the `Verbosity` line **never** contains a note path (no `notes/gamma.md` in the `Verbosity` slot).
+- [ ] In `normal` mode the `renderedPrompt` shows `Verbosity: normal`, and approving `link-suggestion` appends `## Related` with links unchanged from the `verbose` run's link set, aside from model variation.
+- [ ] In `minimal` mode the chat's `Running <skill> on <path>...` status line is suppressed; the final result, apply message, or failure is still shown.
+
+### Automated guard
+
+- Fixture `src/fixtures/f30.ts` (run by `npm run fixtures`) drives the production `MuninnApiInputGatherer` with a recipe shaped like `task-extraction` — `targetPath` and a non-path `recipe-param` named `verbosity` — and renders the prompt through `createRenderContext`/`renderRecipe`. **S1** a supplied `verbosity` resolves to the supplied value. **S2** a missing non-path param resolves to `null`, never to `defaultTargetPath` (the red: at `915451b` the gatherer resolved every `recipe-param` as `params[input.key] ?? defaultTargetPath`, so a command-modal run rendered `Verbosity: notes/gamma` — the model was told a file path is a verbosity setting). **S3** `targetPath` keeps the normalized `defaultTargetPath` fallback with `.md` (the f15/f19 contract, guarded against over-correction). **S4** the rendered prompt's `Verbosity:` line contains no note path.
 
 ## Scenario J: Corrections after failure
 

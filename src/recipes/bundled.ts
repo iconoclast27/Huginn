@@ -42,6 +42,9 @@ User wants a tag suggestion for a note that lacks one.
   description: Notes found by text search for the titleQuery
   source: query
   queryKey: titleQuery
+- key: verbosity
+  description: How verbose the reason sentence should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a tag assistant. Given a vault note, propose up to two tags.
@@ -58,6 +61,13 @@ Related chunks from semantic search (JSON):
 
 Related notes from text search (JSON):
 {{relatedTextHits}}
+
+Verbosity: {{verbosity}}
+
+Verbosity changes only the reason sentence: minimal = a short clause, normal =
+one plain sentence, verbose = one fuller sentence naming which vocabulary tags
+matched. If Verbosity is blank, use normal. The tags proposed are not changed by
+verbosity.
 
 Return a JSON object with three fields only:
 - tags: an array of one or two proposed tag strings
@@ -115,6 +125,9 @@ User wants a better title for a note.
 - key: vocabulary
   description: Existing tag vocabulary with file and chunk counts
   source: vocabulary
+- key: verbosity
+  description: How verbose the reason sentence should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a title assistant. Given a vault note, propose exactly one better title.
@@ -127,6 +140,13 @@ Note content:
 
 Existing tag vocabulary (JSON):
 {{vocabulary}}
+
+Verbosity: {{verbosity}}
+
+Verbosity changes only the reason sentence: minimal = a short clause, normal =
+one plain sentence, verbose = one fuller sentence saying what makes the proposed
+title better than the current one. If Verbosity is blank, use normal. The title
+proposed is not changed by verbosity.
 
 Return a JSON object with three fields only:
 - title: the proposed title string (without file extension)
@@ -186,6 +206,9 @@ User wants wikilink suggestions to insert into a note.
   description: Notes found by text search for the titleQuery
   source: query
   queryKey: titleQuery
+- key: verbosity
+  description: How verbose the reason field should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a link assistant. Given a vault note, suggest up to five existing vault
@@ -203,8 +226,16 @@ Related notes from semantic search (JSON):
 Related notes from text search (JSON):
 {{relatedTextHits}}
 
-Return a JSON object with two fields only:
+Verbosity: {{verbosity}}
+
+Verbosity changes only the prose field: in verbose mode, add a third field
+reason (one sentence saying why each linked note is related to the target);
+in minimal and normal modes, return links and confidence only. If Verbosity
+is blank, use normal. The links suggested are not changed by verbosity.
+
+Return a JSON object with these fields:
 - links: an array of vault paths to link to, e.g. ["notes/alpha.md", "notes/beta.md"]
+- reason: a sentence saying why each linked note is related — include it only in verbose mode
 - confidence: a number from 0.0 to 1.0
 
 Do not return markdown, commentary, or code fences. Return raw JSON only.
@@ -218,6 +249,7 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
       "type": "array",
       "items": { "type": "string" }
     },
+    "reason": { "type": "string" },
     "confidence": { "type": "number" }
   }
 }
@@ -326,6 +358,9 @@ User wants a concise summary of a note.
 - key: content
   description: Full text content of the target note
   source: content
+- key: verbosity
+  description: How verbose the summary should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a summarization assistant. Read the note below and produce a concise
@@ -335,6 +370,12 @@ Target note path: {{targetPath}}
 
 Note content:
 {{content}}
+
+Verbosity: {{verbosity}}
+
+Verbosity changes length inside the 1-3 sentence limit: minimal = one sentence,
+normal = two sentences, verbose = up to three sentences naming which sections of
+the note the summary draws on. If Verbosity is blank, use normal.
 
 Return a JSON object with two fields only:
 - summary: the concise paragraph summary
@@ -392,6 +433,9 @@ User wants existing vault notes that are related to a target note.
   description: Notes found by text search for the titleQuery
   source: query
   queryKey: titleQuery
+- key: verbosity
+  description: How verbose the reason field should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a related-notes assistant. Given a vault note, suggest up to five
@@ -409,9 +453,17 @@ Related notes from semantic search (JSON):
 Related notes from text search (JSON):
 {{relatedTextHits}}
 
-Return a JSON object with two fields only:
+Return a JSON object with these fields:
 - notes: an array of vault paths, e.g. ["notes/alpha.md", "notes/beta.md"]
+- reason: a sentence saying why each related note fits — include it only in verbose mode
 - confidence: a number from 0.0 to 1.0
+
+Verbosity: {{verbosity}}
+
+Verbosity changes only the prose field: in verbose mode, add the reason field
+listed above; in minimal and normal modes, return the notes and confidence
+fields only. If Verbosity is blank, use normal. The notes suggested are not
+changed by verbosity.
 
 Do not return markdown, commentary, or code fences. Return raw JSON only.
 
@@ -424,6 +476,7 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
       "type": "array",
       "items": { "type": "string" }
     },
+    "reason": { "type": "string" },
     "confidence": { "type": "number" }
   }
 }

@@ -25,6 +25,9 @@ User wants a tag suggestion for a note that lacks one.
   description: Notes found by text search for the titleQuery
   source: query
   queryKey: titleQuery
+- key: verbosity
+  description: How verbose the reason sentence should be (minimal, normal, verbose)
+  source: recipe-param
 
 # Instructions
 You are a tag assistant. Given a vault note, propose up to two tags.
@@ -41,6 +44,13 @@ Related chunks from semantic search (JSON):
 
 Related notes from text search (JSON):
 {{relatedTextHits}}
+
+Verbosity: {{verbosity}}
+
+Verbosity changes only the reason sentence: minimal = a short clause, normal =
+one plain sentence, verbose = one fuller sentence naming which vocabulary tags
+matched. If Verbosity is blank, use normal. The tags proposed are not changed by
+verbosity.
 
 Return a JSON object with three fields only:
 - tags: an array of one or two proposed tag strings

@@ -9,6 +9,7 @@
 
 import type { TFile, App } from 'obsidian';
 import type { AbortSignalLike, ChatLlmClient, ChatMessage } from '../llm/client.ts';
+import type { ReportBackVerbosity } from '../settings.ts';
 
 export interface ChatSession {
     messages: ChatMessage[];
@@ -24,6 +25,13 @@ export interface ChatControllerOptions {
     /** Optional chat-summary context so the model can recall earlier conversations. */
     getChatSummaryContext?: () => Promise<string> | string;
 }
+
+/** Response-length guidance for plain chat, keyed by the user's Report-back verbosity setting. */
+const CHAT_VERBOSITY_INSTRUCTIONS: Record<ReportBackVerbosity, string> = {
+    minimal: 'Answer in one or two short sentences. No preamble, no headings, no bullet lists.',
+    normal: 'Answer in a short paragraph of two to five sentences. No preamble, no headings.',
+    verbose: 'Answer in one or two full paragraphs, showing the reasoning behind the answer. No preamble, no markdown headings.',
+};
 
 export class ChatController {
     private opts: ChatControllerOptions;
@@ -42,12 +50,16 @@ export class ChatController {
         };
     }
 
-    async sendMessage(session: ChatSession, text: string, signal?: AbortSignalLike): Promise<{ response: string | null; updatedSession: ChatSession }> {
-        const messages: ChatMessage[] = [
-            ...session.messages,
-            { role: 'user', content: text },
-        ];
-        const raw = await this.opts.llmClient.chat(messages, signal);
+    async sendMessage(session: ChatSession, text: string, signal?: AbortSignalLike, verbosity?: ReportBackVerbosity): Promise<{ response: string | null; updatedSession: ChatSession }> {
+        // The response-length instruction is added per send, not stored in the
+        // session, so changing the setting takes effect on the next request and
+        // instructions never accumulate in the transcript.
+        const requestMessages: ChatMessage[] = [...session.messages];
+        if (verbosity) {
+            requestMessages.push({ role: 'system', content: CHAT_VERBOSITY_INSTRUCTIONS[verbosity] });
+        }
+        requestMessages.push({ role: 'user', content: text });
+        const raw = await this.opts.llmClient.chat(requestMessages, signal);
         if (raw === null) {
             return { response: null, updatedSession: session };
         }
@@ -56,7 +68,7 @@ export class ChatController {
             response: raw,
             updatedSession: {
                 ...session,
-                messages: [...messages, assistantMessage],
+                messages: [...session.messages, { role: 'user', content: text }, assistantMessage],
             },
         };
     }
