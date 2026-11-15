@@ -157,7 +157,7 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 - [ ] Write-class skills (tag, title, links) still open the existing approval modal; approving applies the change and the chat shows the apply result.
 - [ ] **title-suggestion** sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter if necessary.
 - [ ] **tag-assignment** proposes up to two tags (`tags` is an array of one or two strings, schema-valid) and adds them to frontmatter `tags`, creating frontmatter through Obsidian's normal frontmatter mechanism if necessary.
-- [ ] **tag-assignment** on a note that already carries one of the proposed tags: the approval modal's JSON does **not** contain the already-present tag (the harness strips it before asking), and approving adds only the surviving tag(s). `Running tag-assignment on <path>...` appears before the modal, `Tags added to frontmatter tags of <path>` after approval.
+- [ ] **tag-assignment** on a note that already carries one of the proposed tags: the approval modal's JSON does **not** contain the already-present tag (the harness strips it before asking), and approving adds only the surviving tag(s). `Running tag-assignment on <path>...` appears before the modal, and `Added 'surviving' to frontmatter tags of <path>.` after approval — the chat prints the apply result verbatim, naming each surviving tag in single quotes, comma-joined (`apply.ts`), so the dropped tag's name must **not** appear in the message.
 - [ ] **link-suggestion** appends a `## Related` section with `[[path]]` wikilinks after approval.
 
 ## Scenario F: Interrupt an in-flight chat request
@@ -170,6 +170,8 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 1. Open the Huginn chat sidebar.
 2. Type a question that takes a noticeable time to answer.
 3. Click **Send**, then immediately click **Stop** while the response is loading.
+4. Run a write-class skill (e.g. `tag notes/gamma.md`), let the approval modal open, and click **Stop** while the modal is open.
+5. Start a request, **close the chat panel** mid-flight, reopen it from the ribbon icon, then run a follow-up request.
 
 ### Expected results
 - [ ] The send button changes to **Stop** while the request is in flight.
@@ -178,6 +180,9 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 - [ ] The assistant bubble shows `[Interrupted]` for an aborted skill run, or `[No response from model]` for an aborted plain chat request, not a stale partial response.
 - [ ] The button returns to **Send** after abort.
 - [ ] Test with a write-class skill (e.g., `tag this note`) as well as with a plain chat question, because the approval modal must also be dismissible by **Stop**.
+- [ ] After **Stop**, the target note is **unchanged**: no frontmatter edit, no appended section, no partial apply.
+- [ ] `Agents/Huginn/MEMORY/corrections.md` gains **no** entry when **Stop** closes the approval modal — the abort resolves the gate to `null`, apply is skipped, and a user interrupt is not recorded as a model mistake.
+- [ ] Closing the panel mid-flight produces **no** `Chat view` error in the developer console; the panel reopens cleanly and a follow-up request runs to completion.
 
 ### Automated guard
 
