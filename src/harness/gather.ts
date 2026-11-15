@@ -43,8 +43,15 @@ export class MuninnApiInputGatherer implements InputGatherer {
     private async resolveInput(input: RecipeInput, params: Record<string, unknown>, resolved: Record<string, unknown>): Promise<unknown> {
         switch (input.source) {
             case 'recipe-param': {
-                const value = params[input.key] ?? this.opts.defaultTargetPath ?? null;
-                return input.key === 'targetPath' && typeof value === 'string' ? normalizeNotePath(value) : value;
+                // Only path params may borrow defaultTargetPath. A non-path param
+                // (e.g. verbosity) with no caller value must resolve to null,
+                // never to a note path — the prompt must not be told a file path
+                // is a setting. Guarded by f30.
+                if (input.key === 'targetPath') {
+                    const value = params[input.key] ?? this.opts.defaultTargetPath ?? null;
+                    return typeof value === 'string' ? normalizeNotePath(value) : value;
+                }
+                return params[input.key] ?? null;
             }
             case 'content': {
                 const path = normalizeNotePath(String(resolved.targetPath ?? params.targetPath ?? this.opts.defaultTargetPath ?? ''));

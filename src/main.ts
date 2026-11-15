@@ -280,7 +280,7 @@ export default class HuginnPlugin extends Plugin {
     private async runChosenRecipe(recipe: LoadedRecipe, targetPath: string): Promise<void> {
         // eslint-disable-next-line no-console
         console.log('[Huginn] running recipe:', recipe.metadata.name, 'target:', targetPath);
-        const result = await this.harness!.run(recipe, { targetPath, titleQuery: recipe.metadata.name }, {});
+        const result = await this.harness!.run(recipe, { targetPath, titleQuery: recipe.metadata.name, verbosity: this.settings.reportBackVerbosity }, {});
         // eslint-disable-next-line no-console
         console.log('[Huginn] recipe result:', result);
     }
