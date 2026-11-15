@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     // append-frontmatter-array
     if (tagRecipe) {
         const harness = new HuginnHarness({
-            llmClient: new FakeLlmClient(JSON.stringify({ tag: 'index', reason: 'test', confidence: 0.8 })),
+            llmClient: new FakeLlmClient(JSON.stringify({ tags: ['index'], reason: 'test', confidence: 0.8 })),
             inputGatherer: new ManualInputGatherer(new Map<string, unknown>([
                 ['targetPath', 'notes/TagMe.md'],
                 ['vocabulary', { tags: [{ tag: 'index', files: 1, chunks: 1 }] }],

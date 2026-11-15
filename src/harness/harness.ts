@@ -20,7 +20,7 @@ import { validateJson } from './validator.ts';
 import { computeDiff } from './diff.ts';
 import type { ApplyRegistry } from './apply.ts';
 import type { LlmClient, AbortSignalLike } from '../llm/client.ts';
-import type { GroundTruthValidator } from './ground-truth.ts';
+import { stripGroundTruthDrops, type GroundTruthDrop, type GroundTruthValidator } from './ground-truth.ts';
 import type { CorrectionsMemory } from '../memory/kinds.ts';
 
 export interface InputGatherer {
@@ -83,6 +83,7 @@ export class HuginnHarness {
         const schemaErrors: ValidationError[] = [];
         let groundTruthValid = true;
         const groundTruthErrors: ValidationError[] = [];
+        const groundTruthDrops: GroundTruthDrop[] = [];
         let clientFailed = false; // Infrastructure failure (LLM returned null) — not a model mistake.
 
         if (raw === null) {
@@ -107,11 +108,15 @@ export class HuginnHarness {
                     const gtResult = await this.opts.groundTruthValidator.validate(recipe, inputs, parsedOutput.json);
                     groundTruthValid = gtResult.ok;
                     groundTruthErrors.push(...gtResult.errors);
+                    groundTruthDrops.push(...(gtResult.drops ?? []));
                 }
             }
         }
 
-        const afterState = parsedOutput.json;
+        // Strip proposals that are already true in the vault: the user approves, and the
+        // harness applies, only what would actually change. A drop is vault state, not a
+        // model mistake, so this stage writes no correction (f13 S2 invariant).
+        const afterState = stripGroundTruthDrops(parsedOutput.json, groundTruthDrops);
         const diff = computeDiff(beforeState ?? {}, afterState ?? {});
 
         let approved: boolean | null = null;
@@ -189,6 +194,7 @@ export class HuginnHarness {
             schemaErrors,
             groundTruthValid,
             groundTruthErrors,
+            groundTruthDropped: groundTruthDrops.map((d) => d.value),
             diff,
             approved,
             applyResult,

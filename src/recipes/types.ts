@@ -177,6 +177,13 @@ export interface RecipeRunResult {
     schemaErrors: ValidationError[];
     groundTruthValid: boolean;
     groundTruthErrors: ValidationError[];
+    /**
+     * Proposal values that are already true in the vault. These are stripped from
+     * the proposal before approval, so the user sees and approves only what would
+     * actually change. A drop is vault state, not a model mistake: it never writes
+     * a correction.
+     */
+    groundTruthDropped: string[];
     diff: DiffResult;
     approved: boolean | null;
     applyResult: ApplyResult | null;

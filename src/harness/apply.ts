@@ -262,7 +262,17 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
             continue;
         }
         const colon = trimmed.indexOf(': ');
-        if (colon === -1) continue;
+        if (colon === -1) {
+            // Block-style array start: `tags:` with the items on the following lines.
+            // Without this, a note written by joinFrontmatter (`tags:` then `  - item`)
+            // re-reads as an empty frontmatter, and a round-trip loses existing tags.
+            if (trimmed.endsWith(':')) {
+                const key = trimmed.slice(0, -1).trim();
+                result[key] = [];
+                currentKey = key;
+            }
+            continue;
+        }
         const key = trimmed.slice(0, colon);
         const value = trimmed.slice(colon + 2);
         if (value === '') {

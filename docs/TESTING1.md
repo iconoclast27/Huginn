@@ -156,7 +156,8 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 - [ ] **related-notes** returns a bulleted list of up to five existing vault note paths related to the active note.
 - [ ] Write-class skills (tag, title, links) still open the existing approval modal; approving applies the change and the chat shows the apply result.
 - [ ] **title-suggestion** sets both the first `# ` heading and the `title` frontmatter property, creating frontmatter if necessary.
-- [ ] **tag-assignment** adds the proposed tag to frontmatter `tags`, creating frontmatter through Obsidian's normal frontmatter mechanism if necessary.
+- [ ] **tag-assignment** proposes up to two tags (`tags` is an array of one or two strings, schema-valid) and adds them to frontmatter `tags`, creating frontmatter through Obsidian's normal frontmatter mechanism if necessary.
+- [ ] **tag-assignment** on a note that already carries one of the proposed tags: the approval modal's JSON does **not** contain the already-present tag (the harness strips it before asking), and approving adds only the surviving tag(s). `Running tag-assignment on <path>...` appears before the modal, `Tags added to frontmatter tags of <path>` after approval.
 - [ ] **link-suggestion** appends a `## Related` section with `[[path]]` wikilinks after approval.
 
 ## Scenario F: Interrupt an in-flight chat request
@@ -256,9 +257,10 @@ Huginn seeds the vault's `Agents/Huginn/SKILLS/` folder automatically on first r
 4. Try the same request in chat (e.g., `tag notes/gamma.md`).
 
 ### Expected results
-- [ ] The recipe result from the command-modal run shows `groundTruthValid: false` because the tag already exists.
-- [ ] `groundTruthErrors` includes the recipe's rule `description`: `The proposed tag must not already be in the target note's frontmatter tags: value already present in frontmatter key 'tags'`.
+- [ ] The recipe result from the command-modal run shows `groundTruthValid: false` because the proposal has nothing left to apply.
+- [ ] `groundTruthErrors` includes the recipe's rule `description`: `Proposed tags already in the target note's frontmatter are dropped, and only the remaining tags are proposed.: values already present in frontmatter key 'tags'`.
 - [ ] `corrections.md` does **not** gain a ground-truth entry; a duplicate tag is vault state, not a model mistake.
+- [ ] Propose a tag that is **not** in the note alongside one that is (two tags, one duplicate): `groundTruthValid` is **true**, the approval modal shows only the non-duplicate tag, and approving adds only that tag.
 - [ ] In chat, when the same request triggers the same ground-truth failure, the assistant explains that the suggestion is already present and that no change is needed.
 - [ ] Huginn does **not** retry the failed ground-truth check or loop indefinitely.
 

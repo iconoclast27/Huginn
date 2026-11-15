@@ -27,7 +27,7 @@ User wants a tag suggestion for a note that lacks one.
   queryKey: titleQuery
 
 # Instructions
-You are a tag assistant. Given a vault note, propose exactly one tag.
+You are a tag assistant. Given a vault note, propose up to two tags.
 Prefer tags that already exist in the vault vocabulary. Only propose a new
 tag if none of the existing tags are a reasonable fit.
 
@@ -43,8 +43,8 @@ Related notes from text search (JSON):
 {{relatedTextHits}}
 
 Return a JSON object with three fields only:
-- tag: the proposed tag string
-- reason: one sentence explaining the choice
+- tags: an array of one or two proposed tag strings
+- reason: one sentence explaining the proposal
 - confidence: a number from 0.0 to 1.0
 
 Do not return markdown, commentary, or code fences. Return raw JSON only.
@@ -52,9 +52,9 @@ Do not return markdown, commentary, or code fences. Return raw JSON only.
 # Output Contract
 {
   "type": "object",
-  "required": ["tag", "reason", "confidence"],
+  "required": ["tags", "reason", "confidence"],
   "properties": {
-    "tag": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
     "reason": { "type": "string" },
     "confidence": { "type": "number" }
   }
@@ -66,11 +66,11 @@ append-frontmatter-array
 # Apply Params
 {
   "key": "tags",
-  "valuePath": "tag"
+  "valuePath": "tags"
 }
 
 # Validation
 - primitive: frontmatter-not-contains
-  path: /tag
-  description: The proposed tag must not already be in the target note's frontmatter tags.
+  path: /tags
+  description: Proposed tags already in the target note's frontmatter are dropped, and only the remaining tags are proposed.
   params: {"key":"tags"}
