@@ -10,7 +10,7 @@ User wants wikilink suggestions to insert into a note.
 
 # Inputs
 - key: targetPath
-  description: Path to the note receiving links
+  description: Path of the note receiving links
   source: recipe-param
 - key: content
   description: Full text content of the target note
