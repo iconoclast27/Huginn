@@ -493,6 +493,18 @@ ruled doc itself and `adr-28.md`. **No ADR body is edited** (ruling 2, ADR-6): *
 `docs/Unified Project Definition v0.2.md` (pointer stub); `docs/decisions/` (36 ADRs + `index.md` = 37).
 `docs/archive/` is gone from the index.
 
+**Dated 2026-11-17 (second pass):** `docs/Tracked Issues -- Pointer.md` is added. Measured **before** this
+pass the live doc set was **50 tracked files** [R] (`git ls-files docs README.md CHANGELOG.md SECURITY.md
+CONTRIBUTING.md`); the stub is **untracked until the docs commit**, so the count after this pass is 51 —
+4 at the root, **10** live `docs/`, `docs/decisions/` (37). The docket itself is
+canonical in Muninn (`Muninn/docs/Tracked Issues.md`); Huginn keeps no issue list (Muninn
+`docs/decisions/adr-40.md`: a document that outlives one task lives in the repo, and stating a fact twice is
+a drift opportunity). Muninn's rulings `adr-38.md` (Plugin 2 corpus kept as a named oracle), `adr-39.md`
+(the empty `src/` directories removed), and `adr-40.md` (the storage rule) are the new ADRs; **no Huginn ADR
+is added and no Huginn ADR body is edited.** Muninn receipts for the pass: `HEAD: 6b76e41`,
+`TYPECHECK EXIT:0`, **26 `VERDICT: GREEN`**, `FIXTURES LOOP DONE` [R]. Huginn measured at HEAD `9030196`:
+`TYPECHECK EXIT:0`, `FIXTURES EXIT:0`, **30 `VERDICT: GREEN`** [R].
+
 **Next action:** the code thread behind its gate, in binding order, once Dan tasks it (rulings 0/1/3) —
 Muninn `listNotes` (ADR-37, **Proposed, ruling owed**) first, then Huginn's mirror, then `list` in the loop.
 **Huginn cannot lead.** No bump, tag, release cut, or release push is authorized. The pre-release manual act

@@ -77,6 +77,9 @@ marking the old one Superseded. Status values: **Accepted**, **Proposed** (rulin
   the executor contract) apply to both projects.
 - **Shared docs owned by Muninn** (ruling 4): `LLM Coordination Protocol v1.0.md` and
   `Unified Project Definition v0.2.md`. Huginn keeps **pointer stubs** (Phase 4).
+- **The tracked-issues docket is canonical in Muninn** (`Muninn/docs/Tracked Issues.md`), dated 2026-11-17
+  (Muninn `adr-40.md`). Huginn keeps `docs/Tracked Issues -- Pointer.md` and **no issue list of its own**:
+  findings raised in Huginn go on the Muninn docket and stay there until investigated.
 - Huginn has no release doc; Muninn's `docs/Release Ritual -- Walkthrough.md` is the doctrine of record
   and needs a pointer stub (T16).
 
@@ -102,3 +105,15 @@ the ADR decision text, `docs/Serial Contextual Operations Design (Ruled).md`, th
 `CONTRIBUTING.md`; the cited files are recoverable from the git history. The living record is `CHANGELOG.md`
 §Docs record and `docs/Initial Design Report.md` §19/§21. Status lines that describe the archive as a
 destination are read against this addendum.
+
+## Addendum (2026-11-17, second pass) — the docket's home, and Muninn's rulings 38–40
+
+The tracked-issues docket moves into the repo as `Muninn/docs/Tracked Issues.md`, **canonical for both
+projects**; Huginn keeps `docs/Tracked Issues -- Pointer.md` and no issue list. The ruling behind it is Muninn
+**ADR-40** — a working document that outlives one task lives in the repo, and stating a fact twice is a drift
+opportunity. Muninn **ADR-38** closes T1 (the Plugin 2 corpus in Muninn is retained as a **named oracle**: 15
+tracked files, no production path reaches them, f25/f26 are the only consumers, and they referee the interface
+`listNotes` must preserve) and Muninn **ADR-39** closes T2 (the three empty `src/` directories removed; git
+cannot track empty dirs, so the act leaves no commit). **No Huginn ADR is added, and no Huginn ADR body is
+edited** (ruling 2, ADR-6). Receipts at HEAD `9030196`: `TYPECHECK EXIT:0`, `FIXTURES EXIT:0`, **30 `VERDICT:
+GREEN`** [R].

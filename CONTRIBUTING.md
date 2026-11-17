@@ -66,7 +66,11 @@ Operations Design Assessment.md` is the engineering diagnosis of record (living:
 code as code moves, ADR-17). `docs/Huginn Plugin 2 Harness.md` is the canonical recipe-format reference
 (`# Validation`, field table `:60-71`). `docs/TESTING1.md` is the living manual-smoke contract,
 version-pinned; `docs/TestReport.md` is the smoke record of record. Manual smoke is Dan's act in Obsidian;
-fixture-green is not production-live. Every durable fact is mined into the canonical set; `docs/archive/`
+fixture-green is not production-live. **The tracked-issues docket is canonical in Muninn**
+(`Muninn/docs/Tracked Issues.md`); Huginn keeps `docs/Tracked Issues -- Pointer.md` and no issue list of its
+own. **A working document that outlives one task lives in the repo; nothing is kept twice for provenance,
+because stating a fact twice is a drift opportunity** (Muninn `docs/decisions/adr-40.md`).
+Every durable fact is mined into the canonical set; `docs/archive/`
 **was deleted 2026-11-17** (Phase 5, Dan's authorization) — the record is `docs/Initial Design Report.md`
 §21 and `CHANGELOG.md`, and the deleted files are recoverable from the git history. **Evidence lines in
 ADRs and design docs cite files that existed at acceptance/ruling time** and are never edited after

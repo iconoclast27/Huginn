@@ -71,6 +71,9 @@ Canonical set (single source of truth — every durable fact is mined into these
   `c4b103e` / `0.1.0-test.20` (recorded 2026-11-16).
 - [`docs/decisions/index.md`](docs/decisions/index.md) — the 36 ADRs, numbered from 1, status table and
   supersession map. **An ADR is never edited after acceptance.**
+- [`docs/Tracked Issues -- Pointer.md`](docs/Tracked%20Issues%20--%20Pointer.md) — **the docket lives in
+  Muninn** (`Muninn/docs/Tracked Issues.md`), canonical for both projects. Huginn keeps no issue list of its
+  own; findings raised in Huginn go on that docket and stay there until investigated.
 - [`docs/Huginn Plugin 2 Harness.md`](docs/Huginn%20Plugin%202%20Harness.md) — the canonical recipe-format
   reference (`# Validation`, field table `:60-71`), harness flow, module map, fixture table F01–F30.
 - [`docs/TESTING1.md`](docs/TESTING1.md) — the living manual-smoke contract, version-pinned;
