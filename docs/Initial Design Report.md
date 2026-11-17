@@ -528,3 +528,30 @@ misunderstanding** — closures are coding/production-side; the chat default is 
 `qwen3.5:4b`; `SECURITY.md` is conformed to that scope. **T17/T18 closed: root placement agreed.** No
 version, tag, or release was touched. Receipts at `9030196` before the commit: `TYPECHECK EXIT:0`,
 `FIXTURES EXIT:0`, **30 `VERDICT: GREEN`** [R].
+
+**Dated 2026-11-17 — the third pass is committed and pushed.** The pass's docs commit is `a541f68`
+(5 files: `SECURITY.md`, `versions.json`, this report, `docs/Tracked Issues -- Pointer.md`,
+`docs/decisions/index.md`), **52 insertions / 9 deletions**, pushed `cce37c9..a541f68 main -> main`
+[R]. Post-push measured: `git rev-parse --short origin/main` = `a541f68`; `git rev-list --count
+origin/main..HEAD` = **0**; `git status --porcelain` = **no output**; live doc set = **51** tracked
+files; `git ls-files docs/decisions | wc -l` = **37** (the **36** index rows plus `index.md`).
+Receipts at HEAD `cce37c9` before the commit: `TYPECHECK EXIT:0`, `FIXTURES EXIT:0`, 30 `VERDICT:
+GREEN` (f01-f30). A commit cannot carry its own hash, so `a541f68` is recorded here, in the next pass.
+
+**Dated 2026-11-17 — the red plan is written (Dan: "Go ahead with the red plan document").**
+`docs/Op Loop Red Plan.md`, 237 lines, **planning only**: no fixture built, no `.ts` file edited,
+rulings 0/1/3 ("wait for tasking") and ADR-34's status ("no fixture built, no code written") stand.
+It re-measures every seam at HEAD `de228d0` (Muninn) and `a541f68` (Huginn) and corrects six citation
+drifts in its §5: `dispatch.ts` measured 81-106 with the silent refusals at 94, 97, 104;
+`ApprovalRequest` at `harness.ts:29-36`; Stop parity at `approval-gate.ts:41-44, 47-50`; the typed
+Muninn fakes at `f22.ts:41`/`f24.ts:56` (Muninn, measured correct) and the Huginn mirror fakes at
+`f19.ts:20`/`f30.ts:37`, with `f07.ts:41` a cast (`as unknown as MuninnApi`) that does not grow and is
+recorded as a hole; `clientFailed` measured at `harness.ts:87/90/171` with f26's header
+(`f26.ts:1-11`, "Infra failures do not become corrections") as the doctrine; and `main.ts` wiring
+measured at 37/121/181/219/222/225, Scenario F at `TESTING1.md:163`. Sequence: Muninn f27 red at the five-door surface, implementation with fakes grown
+and P1 moved to 6, Muninn's own release act, the Huginn mirror, f31-f36 in ADR-34's order, the loop and
+UI leg, TESTING1 redefinition, one merged smoke, one release. Cross-references verified by
+`git ls-files --error-unmatch`: 13 Muninn files tracked, 13 Huginn files tracked; `src/ops/envelope.ts`
+and `src/ops/loop.ts` measured **absent**, as planned. The canonical pointer to the plan is in
+`Muninn/docs/Tracked Issues.md`; Huginn's stub stays a stub, and this report is the second place the
+plan is named, as the work record — no issue list, no duplicate statuses.

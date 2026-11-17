@@ -67,6 +67,11 @@ Canonical set (single source of truth — every durable fact is mined into these
   **the law**: R1–R14, the four ops (`list`, `read`, `write`, `respond`), disclosure, the op bound.
 - [`docs/Serial Contextual Operations Design Assessment.md`](docs/Serial%20Contextual%20Operations%20Design%20Assessment.md) —
   the engineering diagnosis of record (G1–G13, wiring map, staged fixture plan f31–f36).
+- [`docs/Op Loop Red Plan.md`](docs/Op%20Loop%20Red%20Plan.md) — **planning only** (written 2026-11-17):
+  the executable form of ADR-34's accepted construction order, with every seam re-measured at the current
+  HEADs, the citation drift corrected (§5), the sequence gated by rulings **T15 / T13 / T4**, and the
+  authorization gates listed. No fixture built, no `.ts` file edited: the plan carries no code
+  authorization, and the code gates are T15, T13, T4.
 - [`docs/Initial Design Report.md`](docs/Initial%20Design%20Report.md) — the as-built description at
   `c4b103e` / `0.1.0-test.20` (recorded 2026-11-16).
 - [`docs/decisions/index.md`](docs/decisions/index.md) — the 36 ADRs, numbered from 1, status table and
