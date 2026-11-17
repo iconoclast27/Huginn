@@ -88,3 +88,17 @@ marking the old one Superseded. Status values: **Accepted**, **Proposed** (rulin
 `adr-29.md:34`). Those lines are **dated statements at acceptance** and are **not edited** (ruling 2,
 ADR-6: an accepted ADR is never edited; a changed decision is a new ADR). The living record of the push is
 `CHANGELOG.md` and `docs/Initial Design Report.md` §20, which conform.
+
+## Addendum (2026-11-17) — Phase 5, archive deleted, no ADR edited
+
+**Phase 5 executed 2026-11-17** on Dan's authorization ("Phaswe 5 and the docs commit pushed", Dan
+verbatim): `git rm -r docs/archive` = **19 tracked files** [R], every tombstone dated 2026-11-17; Muninn
+deletes 34 tracked files in the same act. **60 lines in `docs/decisions/`** cite archived names
+(`Chat Skill Dispatcher Design.md`, `Risk Class and Approval Model Design.md`, `Ground Truth …`,
+`Memory Feedback Loop …`, `Recipe Composition …`, `Tool Distancing …`, `Plugin 2 Definition v0.1.md`,
+`Never Try To Teach A Pig To Sing.md`, the handovers) and `docs/archive/` [R]. Those lines are **dated
+statements at acceptance** and are **not edited** (ruling 2, ADR-6): the facts behind each citation live in
+the ADR decision text, `docs/Serial Contextual Operations Design (Ruled).md`, the Design Report, and
+`CONTRIBUTING.md`; the cited files are recoverable from the git history. The living record is `CHANGELOG.md`
+§Docs record and `docs/Initial Design Report.md` §19/§21. Status lines that describe the archive as a
+destination are read against this addendum.

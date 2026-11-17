@@ -384,7 +384,8 @@ repo root (ADR-17, `f2def43`); `fake-app.ts` maps `obsidian` for tsx (ADR-22).
 
 ## 19. Source registry (mining destinations)
 
-Huginn's `docs/archive/` is empty (0 tracked files) — no mining was required. The live set's destinations:
+Huginn's `docs/archive/` measured **2026-11-16 as empty (0 tracked files)** [R] — no mining was required.
+The live set's destinations:
 
 | Tracked file [R] | Destination |
 |---|---|
@@ -410,6 +411,14 @@ Huginn's `docs/archive/` is empty (0 tracked files) — no mining was required. 
 | `docs/Handover 2026-11-15.md` [U] | Untracked; archive material, not canonical (ruling 3). Committing it is Dan's act |
 | `docs/decisions/` (empty, both projects) | **ADR home**, numbered from 1; Phase 4 writes the approved 36-ADR set + `index.md` (T21) |
 | **owed, canonical, absent** | `CHANGELOG.md` (T17), `SECURITY.md` (T18), Contributing/conventions doc, release-doc pointer stub (T16), `docs/archive/README` (ruling 1) |
+
+**All rows marked archive above** were moved into `docs/archive/` on 2026-11-17 (17 `git mv` + the
+untracked `Handover 2026-11-15.md` [U] = 18 files, plus `docs/archive/README.md` = **19 tracked files**),
+each with the tombstone *"Archived 2026-11-17. Superseded by <doc>. Not authoritative."*, and **all archive
+material was deleted 2026-11-17** (Phase 5, Dan's authorization) [R]. The destinations named in each row are
+where the facts live now. Evidence lines in ADRs and design docs that cite the archived names are **dated
+statements at acceptance/ruling time** and are not edited (ruling 2, ADR-6); the deleted files are
+recoverable from the git history.
 
 **Ghosts recorded, not moved:** the three names in drift 8; the "Scenario A superseded" claim; the two
 Muninn qwen verdict docs; the four review/UX names (drift 11). Every row above is a measured `git ls-tree`
@@ -437,7 +446,8 @@ The push line is `1bbc908..2eb0c29 main -> main` [R]. Muninn's matching commit i
 (111 files, 2391+/5526−), pushed `b75c408..9b2a2bd` [R]. Receipts tied to the commits: Muninn
 `TYPECHECK EXIT:0`, 26 `VERDICT: GREEN`, `FIXTURES LOOP DONE`; Huginn `TYPECHECK EXIT:0`, 30
 `VERDICT: GREEN`, `FIXTURES EXIT:0` (`muninn-receipt-commit.txt`, `huginn-receipt-commit.txt`).
-No version bump, no tag, no release cut. **Archive→delete (Phase 5) stays Dan's** (ruling 13).
+No version bump, no tag, no release cut. **Phase 5, archive→delete, executed 2026-11-17 on Dan's
+authorization** (ruling 13, Dan's act) — see §21.
 
 **The commit decision is Dan's.** The code thread stays behind its gate, in binding order, once Dan tasks it: Muninn `listNotes` red at
 `f24` P1 (Muninn f27, chain to 27) → Muninn `api.ts` → Huginn mirror `src/muninn-api.ts:57` (+ fakes at
@@ -448,3 +458,43 @@ Stop parity (first-green with the written justification), `f36` bound → chat U
 one merged manual smoke (T9 closed) → then, and only then, ask Dan for the push and the single
 release cut (ADR-29). **Nothing in this paragraph is authorized today** (rulings 0/1/3: "wait for
 tasking"; ADR-37's ruling is owed before any implementation).
+
+## 21. Phase 5 record, and the conform pass after the Phase 4 push (dated 2026-11-17)
+
+**The docs conform pass** — commit `968c7f4` (`docs(rationalisation): conform the push/commit state record
+(2026-11-17)`, 3 files, 26+/9− [R]), pushed `2eb0c29..968c7f4 main -> main` [R]: `CHANGELOG.md`, this report
+(header, §14 push line, §20 state) and `docs/decisions/index.md`'s dated addendum. **No ADR body edited**
+(ruling 2, ADR-6): `adr-24.md:37`, `adr-28.md:72`, `adr-29.md:34` stay as dated statements at acceptance.
+Receipts measured before that commit: `TYPECHECK EXIT:0`, **30 `VERDICT: GREEN`**, `FIXTURES EXIT:0` [R]
+(`huginn-receipt-pushstate.txt`).
+
+**Phase 5 executed 2026-11-17** on Dan's authorization ("Phaswe 5 and the docs commit pushed", Dan verbatim,
+2026-11-17): `git rm -r docs/archive` = **19 tracked files** [R], the measured `git ls-files docs/archive`
+count taken immediately before the deletion (17 `git mv`'d Phase 4 moves + the committed
+`Handover 2026-11-15.md` + `docs/archive/README.md`). Every file carried the tombstone *Archived 2026-11-17*;
+the content is recoverable from the git history. Muninn's Phase 5 deletes **34 tracked files** in the same
+act, and its commit is `6b76e41`, pushed `9b2a2bd..6b76e41 main -> main` [R].
+
+**Live-doc conform in the Phase 5 commit** (every citation measured, not remembered): `README.md` (line 64
+canonical-set line; lines 84-85, the archive bullet → the deletion record), `CONTRIBUTING.md` (lines 69-70),
+this report (header, §19 line 387, the §19 registry conform note, §20 state, this §21), `CHANGELOG.md`'s docs
+record, `docs/decisions/index.md`'s dated addendum, and `docs/Serial Contextual Operations Design Assessment.md`
+(the `Risk Class and Approval Model Design.md` citations at lines 242 and 296). **`docs/Serial Contextual
+Operations Design (Ruled).md` is not edited** — it is law; its lines 12 and 182 cite
+`docs/Risk Class and Approval Model Design.md` as ruling-time statements, and the batch facts are R13 in the
+ruled doc itself and `adr-28.md`. **No ADR body is edited** (ruling 2, ADR-6): **60 lines in
+`docs/decisions/`** cite archived names and `docs/archive/` [R] as acceptance-time evidence.
+
+**Live doc set measured after Phase 5:** `git ls-files docs README.md CHANGELOG.md SECURITY.md CONTRIBUTING.md`
+= **50 tracked files** [R]: `README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` at the root;
+`docs/Huginn Plugin 2 Harness.md`, `docs/Initial Design Report.md`, `docs/LLM Coordination Protocol v1.0.md`
+(pointer stub), `docs/Release Ritual -- Pointer.md`, `docs/Serial Contextual Operations Design (Ruled).md`,
+`docs/Serial Contextual Operations Design Assessment.md`, `docs/TESTING1.md`, `docs/TestReport.md`,
+`docs/Unified Project Definition v0.2.md` (pointer stub); `docs/decisions/` (36 ADRs + `index.md` = 37).
+`docs/archive/` is gone from the index.
+
+**Next action:** the code thread behind its gate, in binding order, once Dan tasks it (rulings 0/1/3) —
+Muninn `listNotes` (ADR-37, **Proposed, ruling owed**) first, then Huginn's mirror, then `list` in the loop.
+**Huginn cannot lead.** No bump, tag, release cut, or release push is authorized. The pre-release manual act
+stays owed: delete the stale `LLM client returned null` entry (keyed `tag-assignment`) from the vault's
+`Agents/Huginn/MEMORY/corrections.md` (ADR-19, T10).

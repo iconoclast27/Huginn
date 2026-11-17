@@ -5,6 +5,17 @@
 **Basis:** every claim below is measured against committed code at `1bbc908` (pushed, `origin/main`) and Muninn at its own HEAD. Line references are given so the architect can check them.
 **Date:** 2026-11-15
 
+**Conformed 2026-11-17 (Phase 5, Dan's authorization):** the design docs and handovers this assessment cites
+as archive material — `docs/Risk Class and Approval Model Design.md`, `Chat Skill Dispatcher Design.md`,
+`Ground Truth Refactor Design.md`, `Ground Truth Next Primitives Design.md`, `Memory Feedback Loop Design.md`
++ `…Implementation Guide.md`, `Recipe Composition and Reuse Design.md`, `Tool Distancing and Recipe Expansion
+Design.md`, `Huginn Plugin 2 Definition v0.1.md`, `Never Try To Teach A Pig To Sing.md`, and the handovers —
+were tombstoned in `docs/archive/` on 2026-11-17 and **deleted 2026-11-17** (19 tracked files [R]). The
+citations here are dated statements of the corpus as it stood on 2026-11-15; the facts they support live in
+`docs/Serial Contextual Operations Design (Ruled).md`, `docs/decisions/`, and
+`docs/Initial Design Report.md` §19/§21. Deleted files are recoverable from the git history. **The
+engineering content is unchanged:** the fixture plan f31–f36, the wiring map, and the red taxonomy stand.
+
 ---
 
 ## 1. What I agree to, as engineering

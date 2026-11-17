@@ -61,7 +61,7 @@ The memory file names are measured in code: `CorrectionsMemory` → `corrections
 
 ## Docs
 
-Canonical set (single source of truth; history lives in `docs/archive/` with tombstones):
+Canonical set (single source of truth — every durable fact is mined into these docs):
 
 - [`docs/Serial Contextual Operations Design (Ruled).md`](docs/Serial%20Contextual%20Operations%20Design%20(Ruled).md) —
   **the law**: R1–R14, the four ops (`list`, `read`, `write`, `respond`), disclosure, the op bound.
@@ -81,5 +81,8 @@ Canonical set (single source of truth; history lives in `docs/archive/` with tom
 - Pointer stubs (Muninn owns the originals): [`docs/LLM Coordination Protocol v1.0.md`](docs/LLM%20Coordination%20Protocol%20v1.0.md),
   [`docs/Unified Project Definition v0.2.md`](docs/Unified%20Project%20Definition%20v0.2.md),
   [`docs/Release Ritual -- Pointer.md`](docs/Release%20Ritual%20--%20Pointer.md).
-- [`docs/archive/README.md`](docs/archive/README.md) — the archive rule, the index, and the tombstone
-  format. Archive material is not authoritative.
+- **The archive is deleted** (2026-11-17, Phase 5, Dan's authorization): `docs/archive/` held **19 tracked
+  files**, each stamped *"Archived 2026-11-17. Superseded by \<doc\>. Not authoritative."* The mining
+  destinations are in `docs/Initial Design Report.md` §19; the deletion record is §21 and `CHANGELOG.md`.
+  Deleted files are recoverable from the git history. ADR and design-doc evidence lines cite files that
+  existed at acceptance/ruling time and are **not edited** (ruling 2, ADR-6).

@@ -66,8 +66,12 @@ Operations Design Assessment.md` is the engineering diagnosis of record (living:
 code as code moves, ADR-17). `docs/Huginn Plugin 2 Harness.md` is the canonical recipe-format reference
 (`# Validation`, field table `:60-71`). `docs/TESTING1.md` is the living manual-smoke contract,
 version-pinned; `docs/TestReport.md` is the smoke record of record. Manual smoke is Dan's act in Obsidian;
-fixture-green is not production-live. History lives in `docs/archive/` with tombstones; archive material is
-not authoritative, and deletion is a later human-approved step, never the executor's.
+fixture-green is not production-live. Every durable fact is mined into the canonical set; `docs/archive/`
+**was deleted 2026-11-17** (Phase 5, Dan's authorization) — the record is `docs/Initial Design Report.md`
+§21 and `CHANGELOG.md`, and the deleted files are recoverable from the git history. **Evidence lines in
+ADRs and design docs cite files that existed at acceptance/ruling time** and are never edited after
+acceptance (ruling 2, ADR-6); deletion was never the executor's act — it was Dan's, on written
+authorization.
 
 **Docs conform to code, never the reverse.** A fact lives in exactly one canonical doc across both projects
 — cross-reference, never copy. Shared docs (the LLM Coordination Protocol, the Unified Project Definition,
