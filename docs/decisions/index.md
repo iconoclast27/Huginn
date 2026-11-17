@@ -79,3 +79,12 @@ marking the old one Superseded. Status values: **Accepted**, **Proposed** (rulin
   `Unified Project Definition v0.2.md`. Huginn keeps **pointer stubs** (Phase 4).
 - Huginn has no release doc; Muninn's `docs/Release Ritual -- Walkthrough.md` is the doctrine of record
   and needs a pointer stub (T16).
+
+## Addendum (2026-11-17) — push record, no ADR edited
+
+`1bbc908..2eb0c29 main -> main` [R] (measured push line): `origin/main` is `2eb0c29`
+(Phase 4 docs commit, 84 files, 2586+/3077−), and Muninn's matching commit `9b2a2bd` is pushed
+`b75c408..9b2a2bd` [R]. Three ADRs state that `c4b103e` is unpushed (`adr-24.md:37`, `adr-28.md:72`,
+`adr-29.md:34`). Those lines are **dated statements at acceptance** and are **not edited** (ruling 2,
+ADR-6: an accepted ADR is never edited; a changed decision is a new ADR). The living record of the push is
+`CHANGELOG.md` and `docs/Initial Design Report.md` §20, which conform.

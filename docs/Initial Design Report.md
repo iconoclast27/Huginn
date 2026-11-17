@@ -1,8 +1,10 @@
 # Huginn Initial Design Report
 
 **Recorded:** 2026-11-16 (body revision date; frontmatter `modified:` is not evidence — Muninn ADR-6).
-**Describes as-built at:** HEAD `c4b103e`, version `0.1.0-test.20` [R]. `origin/main` is `1bbc908` — HEAD
-is **unpushed** [R]; push authorization is Dan's.
+**Describes as-built at:** HEAD `c4b103e`, version `0.1.0-test.20` [R] (code unchanged by the Phase 4
+docs commit `2eb0c29`; the as-built basis is `c4b103e`). **Pushed 2026-11-17:**
+`1bbc908..2eb0c29 main -> main` — `origin/main` is `2eb0c29` [R]. Push authorization is Dan's and is
+discharged.
 **Method:** retrospective, paired with the Muninn Initial Design Report (same corpus, same rules, 2026-11-16).
 Canonical single-source-of-truth document for Huginn. Facts owned by Muninn are cross-referenced, never
 copied (ruling 4, ADR-32).
@@ -268,7 +270,8 @@ prose stays behind `TESTING1.md` as the manual's pointer, and is part of the bum
   (T12). Pre-release manual step: delete the stale `LLM client returned null` correction from the vault's
   `Agents/Huginn/MEMORY/corrections.md` (keyed `tag-assignment`, injected into every such prompt), a
   manual act outside the repo (ADR-19, T10).
-- Ask before pushing. `c4b103e` is unpushed; `1bbc908..c4b103e` is in Dan's hands [R].
+- Ask before pushing. **Discharged 2026-11-17:** `1bbc908..2eb0c29 main -> main` (measured push line [R]);
+  `origin/main` is `2eb0c29`, `git rev-list --count origin/main..HEAD` = 0.
 
 ## 15. Known drift register (doc ↔ code)
 
@@ -427,9 +430,14 @@ and `(Ruled).md`'s header citation (drift 11 / T31). `CHANGELOG.md`, `SECURITY.m
 the repo **root**, matching Muninn's Phase 4 placement (the triage table named `docs/`; the location was an
 open item, so one placement across both projects, reported for the record).
 
-**State:** everything is **uncommitted** — HEAD `c4b103e` is above `origin/main` `1bbc908` [R]. Receipts
-measured after the writing pass (typecheck + fixtures) are in the Phase 4 report; nothing is committed,
-pushed, bumped, tagged, released, or deleted (rulings 12–13, ADR-20, ADR-21). Archive→delete stays Dan's.
+**State (2026-11-17):** **committed and pushed** — `2eb0c29` (`docs(rationalisation): phase 4 canonical
+set — ADRs, Design Report, archive, pointer stubs, doc-conform`, 84 files, 2586+/3077− [R]); the untracked
+`docs/archive/Handover 2026-11-15.md` [U] is committed on Dan's word (ruling 3); tree clean after the commit.
+The push line is `1bbc908..2eb0c29 main -> main` [R]. Muninn's matching commit is `9b2a2bd`
+(111 files, 2391+/5526−), pushed `b75c408..9b2a2bd` [R]. Receipts tied to the commits: Muninn
+`TYPECHECK EXIT:0`, 26 `VERDICT: GREEN`, `FIXTURES LOOP DONE`; Huginn `TYPECHECK EXIT:0`, 30
+`VERDICT: GREEN`, `FIXTURES EXIT:0` (`muninn-receipt-commit.txt`, `huginn-receipt-commit.txt`).
+No version bump, no tag, no release cut. **Archive→delete (Phase 5) stays Dan's** (ruling 13).
 
 **The commit decision is Dan's.** The code thread stays behind its gate, in binding order, once Dan tasks it: Muninn `listNotes` red at
 `f24` P1 (Muninn f27, chain to 27) → Muninn `api.ts` → Huginn mirror `src/muninn-api.ts:57` (+ fakes at

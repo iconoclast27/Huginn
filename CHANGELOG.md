@@ -39,8 +39,8 @@ release doctrine is owned by Muninn, `Muninn/docs/Release Ritual -- Walkthrough.
 - **Release hygiene, ruling owed (T25):** `versions.json` has **18 entries against 20 tags** —
   `0.1.0-test.14` (`0971c79`) and `0.1.0-test.15` (`b812655`) are missing. Completing the file is a
   release act, Dan's, not a doc edit.
-- **Uncommitted and unpushed:** HEAD `c4b103e` sits above `origin/main` `1bbc908` (56 commits total) [R].
-  The serial contextual operations work, `1bbc908` plus the op loop, lands in **one** release with **one**
-  merged manual smoke (the release overrule, 2026-11-15) — no intermediate `0.1.0-test.21` cut.
+- **Committed and pushed 2026-11-17:** `2eb0c29` (Phase 4 docs), pushed `1bbc908..2eb0c29 main -> main`
+  [R]. The serial contextual operations work, `1bbc908` plus the op loop, lands in **one** release with
+  **one** merged manual smoke (the release overrule, 2026-11-15) — no intermediate `0.1.0-test.21` cut.
 - `docs/TestReport.md` is the smoke record of record: Dan's `test.18` run — Scenario A PASS, F FAIL,
   I inconclusive.
