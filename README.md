@@ -52,5 +52,34 @@ Runs F01–F30, covering harness end-to-end, settings, ground truth, approval, r
 Agents/
   Huginn/
     SKILLS/      # skill recipes
-    MEMORY/      # corrections.md, user-memory.md, chat-summaries.md
+    MEMORY/      # corrections.md, user.md, chat-summaries.md
 ```
+
+The memory file names are measured in code: `CorrectionsMemory` → `corrections.md`
+(`src/memory/kinds.ts:34`), `UserMemory` → **`user.md`** (`:75`), `ChatSummaryMemory` →
+`chat-summaries.md` (`:110`).
+
+## Docs
+
+Canonical set (single source of truth; history lives in `docs/archive/` with tombstones):
+
+- [`docs/Serial Contextual Operations Design (Ruled).md`](docs/Serial%20Contextual%20Operations%20Design%20(Ruled).md) —
+  **the law**: R1–R14, the four ops (`list`, `read`, `write`, `respond`), disclosure, the op bound.
+- [`docs/Serial Contextual Operations Design Assessment.md`](docs/Serial%20Contextual%20Operations%20Design%20Assessment.md) —
+  the engineering diagnosis of record (G1–G13, wiring map, staged fixture plan f31–f36).
+- [`docs/Initial Design Report.md`](docs/Initial%20Design%20Report.md) — the as-built description at
+  `c4b103e` / `0.1.0-test.20` (recorded 2026-11-16).
+- [`docs/decisions/index.md`](docs/decisions/index.md) — the 36 ADRs, numbered from 1, status table and
+  supersession map. **An ADR is never edited after acceptance.**
+- [`docs/Huginn Plugin 2 Harness.md`](docs/Huginn%20Plugin%202%20Harness.md) — the canonical recipe-format
+  reference (`# Validation`, field table `:60-71`), harness flow, module map, fixture table F01–F30.
+- [`docs/TESTING1.md`](docs/TESTING1.md) — the living manual-smoke contract, version-pinned;
+  [`docs/TestReport.md`](docs/TestReport.md) — the smoke record of record.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — conventions, fixture discipline, the authorization chain.
+- [`CHANGELOG.md`](CHANGELOG.md) — entries by release tag, dates and tag commits measured.
+- [`SECURITY.md`](SECURITY.md) — write lane, approval model, model layer.
+- Pointer stubs (Muninn owns the originals): [`docs/LLM Coordination Protocol v1.0.md`](docs/LLM%20Coordination%20Protocol%20v1.0.md),
+  [`docs/Unified Project Definition v0.2.md`](docs/Unified%20Project%20Definition%20v0.2.md),
+  [`docs/Release Ritual -- Pointer.md`](docs/Release%20Ritual%20--%20Pointer.md).
+- [`docs/archive/README.md`](docs/archive/README.md) — the archive rule, the index, and the tombstone
+  format. Archive material is not authoritative.

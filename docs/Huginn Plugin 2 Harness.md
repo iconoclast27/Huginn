@@ -138,6 +138,9 @@ message: No actionable TODOs found.
 | `src/fixtures/f25.ts` | Ground-truth rule descriptions reach the approval gate |
 | `src/fixtures/f26.ts` | Infra failures (null LLM client) are reported as invalid but never recorded as corrections |
 | `src/fixtures/f27.ts` | Scenario F: the abort reaches the stream loop — both the chat leg and the harness `complete()` leg |
+| `src/fixtures/f28.ts` | Bundled catalog ↔ `src/recipes/*.md` sync guard (drift guard, first-green with written justification in the fixture header) |
+| `src/fixtures/f29.ts` | `tag-assignment` proposes up to two tags: array frontmatter values read by the vault-truth check, dropped values stripped before approval, drops never recorded as corrections |
+| `src/fixtures/f30.ts` | Gatherer rule: non-path `recipe-param` inputs resolve to `null` and never borrow the note path as a setting |
 
 ## Memory system
 
@@ -148,7 +151,7 @@ Three memory kinds share the same underlying `VaultMemoryStore`:
 | Kind | File | Writer | Reader | Purpose |
 |------|------|--------|--------|---------|
 | **Corrections** | `corrections.md` | harness + chat UI | dispatcher + recipe renderer | Mistakes the model made and should not repeat |
-| **User memory** | `user-memory.md` | chat UI | chat system prompt | Things the user explicitly told Huginn to remember |
+| **User memory** | `user.md` | chat UI | chat system prompt | Things the user explicitly told Huginn to remember |
 | **Chat summary** | `chat-summaries.md` | chat UI "Remember chat" button | chat system prompt | Condensed history from long conversations |
 
 Corrections are appended when: the model returns JSON that fails schema validation; an apply routine fails; or the user rejects a suggestion in the approval gate (including the optional rejection reason). Each entry records the recipe name, failure type, affected key/value, and a short note. Recent corrections are injected into the dispatcher system prompt and into the recipe prompt before the model runs.
@@ -171,7 +174,11 @@ Three commands are registered:
 
 ## Model warmup
 
-`HuginnHarness.warmup()` sends a trivial `/api/chat` completion to pull the configured model back into memory. It is triggered automatically on initialization if the **Warm up chat model on load** setting is enabled.
+`HuginnHarness.warmup()` sends a trivial `/api/chat` completion to pull the configured model back into
+memory (`harness.ts:205`). It is triggered automatically **on Huginn initialization** (`main.ts:148`,
+inside `initialize()`) when the setting is enabled — not on UI focus or keystrokes (`docs/TESTING1.md:318`).
+The setting's internal key is `warmupOnFocus` (`settings.ts:15`, a legacy name from the focus-era design;
+the UI label is **"Warm up chat model on load"** at `main.ts:447`).
 
 ## Chat interface
 

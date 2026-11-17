@@ -134,7 +134,7 @@ is a docs ruling, not a code change.
 defaults to 120000 (`settings.ts:23`). A 12-op turn is up to 12 LLM calls; at 10-20 s per call on
 local Ollama a turn runs 2-4 minutes, and a timeout mid-turn is an infra failure — `f26`'s
 "no correction" rule must extend to per-op calls, so the loop needs the `clientFailed` concept
-per op (`harness.ts:96`), not per turn. Scenario F (Stop), Scenario I (verbosity), and every
+per op (`harness.ts:87-91`), not per turn. Scenario F (Stop), Scenario I (verbosity), and every
 chat scenario get longer to run by hand. I flag this so the bound number is chosen with the manual
 smoke in mind, not with the loop's ideal in mind.
 
@@ -179,7 +179,7 @@ change. My R6.
   accepts only `{recipeName, targetPath, reason}` and returns `null` for anything else, so a
   two-path write op is refused today. Red is real; the refusal is not machine-readable, which is
   the second half of the claim.
-- Invariant 3 (vault-rooting) — **true**, as measured in G7/G1 note above (`path-utils.ts:8` has
+- Invariant 3 (vault-rooting) — **true**, as measured in G7/G1 note above (`src/ui/path-utils.ts:8` has
   no traversal rejection).
 - Invariant 4 (expiry) — **false as stated**: there is no loop, no account, no gate boundary.
   Red cannot be earned against committed code; it can be earned at the stage where the account
@@ -257,7 +257,7 @@ without a gate, which §3.3 ("always gated") also forbids.
   scalar `obj.tag` branch is dead code that should be removed when array display lands.
 - The loop's per-op LLM calls should reuse `ChatLlmClient.chat` (not `complete`), because op
   results must be appended as messages; `complete` takes a single string prompt.
-- `warmup()` (`harness.ts:201`) exists for the model-kept-out-of-memory case; a 12-op turn is the
+- `warmup()` (`harness.ts:205`) exists for the model-kept-out-of-memory case; a 12-op turn is the
   first feature that needs it reliably.
 
 ---
@@ -272,7 +272,7 @@ without a gate, which §3.3 ("always gated") also forbids.
   `writesRequested`, `writesApplied`, `writesDeclined`, `opErrors`, `boundHit`), the executor
   (read → vault reader; list → Muninn `listNotes`; write → `harness.run` per G2-A; respond →
   terminal), expiry reset at each gate, bound check, abort signal threaded to every call.
-  Per-op `clientFailed` handling inherited from `harness.ts:96` + `f26` doctrine.
+  Per-op `clientFailed` handling inherited from `harness.ts:87-91` + `f26` doctrine.
 - **`src/chat/chat.ts`** — `sendMessage` gains the loop path; the per-send verbosity instruction
   (`CHAT_VERBOSITY_INSTRUCTIONS`, `1bbc908`) becomes part of the loop system prompt, still
   per-send and never persisted.
@@ -305,7 +305,7 @@ and expiry red can only be earned at their own stage. Six fixtures, `f31` first.
 
 1. **`f31` — envelope refusal and vault-rooting** (invariants 2, 3). Red against `1bbc908`:
    `dispatch.ts:88-100` accepts only the dispatch shape and returns a silent `null` (no
-   machine-readable error); `path-utils.ts:8` passes `../x.md` through. Entry at the envelope
+   machine-readable error); `src/ui/path-utils.ts:8` passes `../x.md` through. Entry at the envelope
    parser's production surface once `src/ops/envelope.ts` exists — first legs enter at
    `ChatSkillDispatcher.dispatch` (today's entry point) with the op envelope as the raw model
    emission, so the red is real. Then `isVaultPath` lands.

@@ -1,8 +1,14 @@
 # Huginn — Serial Contextual Operations Design (as ruled)
 
 **Status:** ruled 2026-11-15 by Dan; implementation authorized under the staged red plan in the companion engineer's assessment
-**Amended in response to:** `docs/Design Review - Serial Contextual Operations 2026-11-15.md` (the engineer's assessment, G1–G13, measured against Huginn `1bbc908` and Muninn HEAD)
-**Rulings:** R1–R14 settled (§11). This document is the law; where it conflicts with the v1 draft (superseded), this version governs.
+**Amended in response to:** `docs/Serial Contextual Operations Design Assessment.md` (the engineer's
+assessment, G1–G13, measured against Huginn `1bbc908` and Muninn HEAD). **Naming record (docket T31):**
+this header was written citing `docs/Design Review - Serial Contextual Operations 2026-11-15.md`; that name
+is not in the repo (24 tracked files under `docs/`, `git ls-tree` [R]) — the file it describes is the
+tracked Assessment, and the citation conforms to it. ADR-28 records the naming fact; the file was not
+created.
+**Rulings:** R1–R14 settled (§11). This document is the law; the v1 draft named in the header as
+superseded was **never committed** (T31), so the supersession is recorded in ADR-28, not in a file.
 **Supersedes:** the active-note-only gather baseline; the batch sections of `docs/Risk Class and Approval Model Design.md` (R13); the knife-switch default-target model.
 **Doctrine companion:** the engineer's assessment remains the engineering-side diagnosis; this document does not republish its wiring map. Implementation follows the assessment's fixture plan (§4 of the assessment), staged red per commit.
 
