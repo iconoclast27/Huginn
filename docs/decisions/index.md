@@ -117,3 +117,16 @@ tracked files, no production path reaches them, f25/f26 are the only consumers, 
 cannot track empty dirs, so the act leaves no commit). **No Huginn ADR is added, and no Huginn ADR body is
 edited** (ruling 2, ADR-6). Receipts at HEAD `9030196`: `TYPECHECK EXIT:0`, `FIXTURES EXIT:0`, **30 `VERDICT:
 GREEN`** [R].
+
+## Addendum (2026-11-17, third pass) — two Muninn rulings close four Huginn-bearing rows
+
+Dan's later rulings of 2026-11-17 are recorded as Muninn **ADR-41** and **ADR-42**; **no Huginn ADR is added
+and no Huginn ADR body is edited** (ruling 2, ADR-6). **ADR-41** — "The closed models are closed on the
+coding/production side, not the user side… qwen3.5:4b is a popular default for users" — closes **T33**:
+`DEFAULT_SETTINGS` (`src/settings.ts:20-27`) shipping `qwen3.5:4b` is a **user-side** default, unchanged, and
+`SECURITY.md` is conformed to that scope. **ADR-42** — "T17/18 -- agreed, root" — closes **T17/T18**:
+`README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` at the repo root in both projects.
+**T10** closes by Dan's vault act (all memory files deleted), so `docs/TESTING1.md`'s memory scenarios run
+from a clean slate; **T24/T25** close with `versions.json` completed (Huginn **18 → 20** entries,
+`minAppVersion` read from each tag's own `manifest.json`). Receipts measured at HEAD `cce37c9` — see this
+report §21.

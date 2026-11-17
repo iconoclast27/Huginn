@@ -510,3 +510,21 @@ Muninn `listNotes` (ADR-37, **Proposed, ruling owed**) first, then Huginn's mirr
 **Huginn cannot lead.** No bump, tag, release cut, or release push is authorized. The pre-release manual act
 stays owed: delete the stale `LLM client returned null` entry (keyed `tag-assignment`) from the vault's
 `Agents/Huginn/MEMORY/corrections.md` (ADR-19, T10).
+
+**Dated 2026-11-17, later in the same day — the pass is committed and pushed.** The second-pass docs commit is
+`cce37c9` (5 files: `docs/Tracked Issues -- Pointer.md`, `README.md`, `CONTRIBUTING.md`, this report,
+`docs/decisions/index.md`), pushed `9030196..cce37c9 main -> main` [R]; `origin/main` = `cce37c9`,
+`git rev-list --count origin/main..HEAD` = 0, tree clean [R], live doc set = **51** tracked files [R]
+(`git ls-files docs README.md CHANGELOG.md SECURITY.md CONTRIBUTING.md`). The hash is recorded by the next
+pass, because a commit cannot contain its own hash.
+**T25 closed** on Dan's request 2026-11-17: `versions.json` measured **18** entries against **20** tags
+before, **20** entries after the pass, `node -e` parse OK and `tags not in entries: []`; the added
+`0.1.0-test.14` and `0.1.0-test.15` entries use `minAppVersion` read from each tag's own `manifest.json`
+(`git show 0.1.0-test.14:manifest.json` → `0.15.0`), inserted between `test.13` and `test.16` to keep the
+file's chronological order. The commits the tags peel to are `dda5fa4c14e4…` and `0e1611548d…` (the
+annotated **tag objects** are `0971c79`/`b812655` — the earlier note that named them as commits was
+imprecise). **T10 closed by Dan's vault act** ("I deleted all memories"), **T33 closed as a
+misunderstanding** — closures are coding/production-side; the chat default is user-side and stays
+`qwen3.5:4b`; `SECURITY.md` is conformed to that scope. **T17/T18 closed: root placement agreed.** No
+version, tag, or release was touched. Receipts at `9030196` before the commit: `TYPECHECK EXIT:0`,
+`FIXTURES EXIT:0`, **30 `VERDICT: GREEN`** [R].

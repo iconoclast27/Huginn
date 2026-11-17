@@ -50,9 +50,11 @@ authority, no model receives a tool menu, and no model can reach the vault.
 **Roster (ADR-21):** Gemma4:12b retired, qwen closed, the paid `kimi` plugin is known-good with a declared
 ~$120 cap; auditions paused, interim staffing is Dan-and-infra. Closures rest on Dan's ruling and
 committed handover narratives, never store transcripts (T22). Reading Qwen3.5:12b's chats is permitted and
-bounded; reading Gemma4:12b's is out of bounds (Dan, 2026-11-16). **A measured tension, ruling owed
-(T33):** `DEFAULT_SETTINGS` (`settings.ts:20-27`) ships `qwen3.5:4b` as the chat model default, and qwen
-is closed.
+bounded; reading Gemma4:12b's is out of bounds (Dan, 2026-11-16). **Scope of the closures (Dan, 2026-11-17,
+closing T33):** the roster closures are **staffing rulings for the coding/production side**. They do not
+prohibit a model for the user side: the vault plugin is built to rely on small models, and
+`DEFAULT_SETTINGS` (`settings.ts:20-27`) shipping `qwen3.5:4b` as the chat default is a **popular user-side
+default**, not a contradiction of the closure. No default change, no code change.
 
 ## External requirements
 
