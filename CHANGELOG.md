@@ -71,3 +71,24 @@ history. Live docs conformed in the same commit: `README.md` (lines 64, 84-85), 
 header conform note. **`docs/Serial Contextual Operations Design (Ruled).md` is not edited** (it is law), and
 **no ADR body is edited**: 60 lines in `docs/decisions/` cite archived names as acceptance-time evidence [R].
 Live doc set after: **50 tracked doc files** [R]. No bump, no tag, no release.
+
+**2026-11-18, T4 ruled — the declared limitation.** Dan ruled compute threading: **"Declared limitation,
+we can revisit if the problem bites."** The ruling is Muninn `docs/decisions/adr-43.md`; this repo carries
+pointers only. Written: `docs/Op Loop Red Plan.md`, `docs/Tracked Issues -- Pointer.md`, `README.md` —
+**3 files** [R]; the pass record is `docs/Initial Design Report.md` §21. **No code, no fixture, no
+`main.js`, no version, no tag, no release.** Receipts at HEAD `e4ccbd9` (tree clean, pushed) with this
+pass's docs in the tree: `TYPECHECK EXIT:0`, `FIXTURES EXIT:0`, **30 `VERDICT: GREEN`** [R].
+
+**2026-11-18, T15 ruled — the enumeration door.** Dan ruled `listNotes`: **"Of course I agree the door."**
+… **"1, 2, 3, 4 agreed. 5. recommendation accepted. 6. That waits on that proposed addons list."** The
+contract is recorded once, in Muninn `docs/decisions/adr-37.md` (**Accepted**, implementation owed); this repo
+carries pointers only. Written: `docs/decisions/adr-33.md` (status **Proposed → Accepted**, body rewritten as
+the acceptance-time text), `docs/decisions/index.md` (row 33, dated addendum),
+`docs/Tracked Issues -- Pointer.md` (T15 closed, **T37** raised), `README.md` (gate list **T13** alone),
+`docs/Op Loop Red Plan.md` (Stage 0, Stage 1's `f27` assertion list pointing at `adr-37.md`, Stage 11's
+disclosure obligation, §6 gates, cross-references), `docs/Initial Design Report.md` §21, and this record —
+**7 files** [R]. **T15 closes; T13 is the loop's only remaining gate; T8 stays open.**
+**No code, no fixture, no `main.js`, no version, no tag, no release.** Receipts at HEAD `e4ccbd9` with this
+pass's docs in the tree: `TYPECHECK EXIT:0`, `npm run fixtures` (the chain at `package.json:11`, **30
+entries, `f01`–`f30` in order, no gaps**) → `EXIT:0` with **30 `VERDICT: GREEN`** [R].
+

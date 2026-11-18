@@ -40,7 +40,7 @@ marking the old one Superseded. Status values: **Accepted**, **Proposed** (rulin
 | 30 | Memory Feedback Loop | **Accepted as design, unimplemented** | design + guide 11-07 (`0a066d7`); ruling owed (T13) | Ranking/scoring unimplemented; the guide's F26–F30 plan collides with shipped fixtures |
 | 31 | Design tenants die by name | Accepted | R13 11-15; living-doc rule | Supersession recorded in the ruled header; docs conform to code; unimplemented vocabularies measured 0 hits |
 | 32 | Document rationalisation law | Accepted (rulings 1–14), Phase 3/4 owed | Dan 11-16 | Canonical categories; `docs/archive/` + tombstones in both; ADR immutability; **receipts or nothing** |
-| 33 | `listNotes` in the mirror | **Proposed — ruling owed** (T15) | R12 11-15; contract drafted 11-16 | Sixth door, additive, read-only, dark-safe; Muninn first, then mirror, then `list` |
+| 33 | `listNotes` in the mirror | **Accepted** — the ruling is Muninn `adr-37.md` (**Accepted 2026-11-18**); implementation owed | R12 11-15; ruled Dan 2026-11-18 | Sixth door, additive, read-only, dark-safe; **the contract of record is Muninn `adr-37.md`**; Muninn first, then mirror, then `list`; the turn receipt carries the disclosure obligation |
 | 34 | Op-loop fixture plan `f31`–`f36` | Accepted as construction order, nothing built | R14 11-15 | Three reds at `1bbc908`, two staged, one first-green with written justification; f11 re-pointed |
 | 35 | `isDesktopOnly` — activation flag, not a function gate | Accepted as supersession text, no code change | Dan 11-16, ruling 11 | `false` is correct in both manifests; the "flip owed" doctrine is the stale artifact |
 | 36 | Prompt budget and context floor | Accepted | R8/R11/§6 11-15, G5 11-15, as-built 11-07 | Loop prompt carries names + triggers, not recipe text; base context implied; latency accounted by design |
@@ -60,7 +60,7 @@ marking the old one Superseded. Status values: **Accepted**, **Proposed** (rulin
 | `minItems`/`maxItems` as enforcement furniture | ADR-14 | Rejected as rule enforcement; the memory-pollution vector closed |
 | Scenario B's "previously-unachievable" verbosity expectation | ADR-18, ADR-25 (R4 corollary) | Drop notices always display; no `verbose` recipe input needed |
 | "Scenario A superseded by name" (a claim, not a doc) | ADR-25, docket T26 | Measured: the claim is not in the repo; Scenario A is the precondition for all eleven scenarios and survives unchanged |
-| Frozen five-door surface (Muninn 2026-11-06) | ADR-33 **if Muninn ADR-37 is accepted** | Becomes six doors; ruling owed, nothing implemented |
+| Frozen five-door surface (Muninn 2026-11-06) | Muninn ADR-37, **accepted 2026-11-18** | Becomes six doors; contract ruled, **implementation owed**; Huginn's mirror follows |
 
 ## Cross-project acknowledgements (Muninn owns, Huginn consumes)
 
@@ -68,8 +68,9 @@ marking the old one Superseded. Status values: **Accepted**, **Proposed** (rulin
   archived with a tombstone pointing here (ruling 7).
 - **Muninn ADR-34** (plugin boundary) and **Muninn ADR-36** (the five-door freeze) bind
   `src/muninn-api.ts:57` and forbid vault enumeration in Huginn (ADR-1).
-- **Muninn ADR-37** (`listNotes`, **Proposed**) is the dependency of ADR-33 and the op loop; sequencing is
-  binding: Muninn `api.ts` → Huginn mirror → `list` in the loop. **Huginn cannot lead.**
+- **Muninn ADR-37** (`listNotes`, **Accepted 2026-11-18** — the contract of record) is the dependency of
+  ADR-33 and the op loop; sequencing is binding: Muninn `api.ts` → Huginn mirror → `list` in the loop, and
+  **the code is a separate authorization. Huginn cannot lead.**
 - **Muninn ADR-31** is the base ban; Huginn's `docs/Serial Contextual Operations Design (Ruled).md`
   (R1–R14, 2026-11-15) is the gated re-admission of a write op. **That document is law for Huginn.**
 - **Muninn ADR-6** (ADR immutability), **ADR-7** (earned red), **ADR-8** (release doctrine),
@@ -130,3 +131,18 @@ coding/production side, not the user side… qwen3.5:4b is a popular default for
 from a clean slate; **T24/T25** close with `versions.json` completed (Huginn **18 → 20** entries,
 `minAppVersion` read from each tag's own `manifest.json`). Receipts measured at HEAD `cce37c9` — see this
 report §21.
+
+## Addendum (2026-11-18, second pass) — **T15** ruled; the mirror's contract is Muninn `adr-37.md`
+
+Dan ruled the `listNotes` contract, verbatim: **"Of course I agree the door."** … **"1, 2, 3, 4 agreed.
+5. recommendation accepted. 6. That waits on that proposed addons list."** `adr-33.md`'s status moves
+**Proposed → Accepted**, and its body is rewritten as the acceptance-time text; **the contract itself lives
+in Muninn `adr-37.md`** and is not restated here beyond the fields the loop needs. **T15 closes; T13 is the
+loop's only remaining gate.** Point 6 opens docket row **T37** (the proposed add-ons list — Dataview
+integration, structural predicates — deferred, "much, much later"). **The ruled contract authorizes no
+code**: `src/muninn-api.ts:57-63` gains `listNotes` only after Muninn's `api.ts` gains it, and the mirror
+work is a separate authorization, in ADR-10's order. The Huginn-side obligation the ruling places on this
+repo is the **turn-receipt disclosure** (Stage 11 of `docs/Op Loop Red Plan.md`): a partial `list` says it
+is partial, a semantic answer is labelled a ranking, and a capped scan is never served as complete.
+No Huginn ADR is added, and no Huginn ADR body is edited beyond `adr-33.md`, which was never accepted
+before (ruling 2, ADR-6).

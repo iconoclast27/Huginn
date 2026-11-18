@@ -34,7 +34,7 @@ without a gate) is not compatible with project doctrine, and `batch-suggest` con
   (G12, `:240`), and the wire map lists it as "batch section marked superseded, `auto-apply` row ruled"
   (`:296-297`).
 - The Muninn-dependent primitives (`note-has-heading`, `note-links-to`, `muninn:`) are blocked by Muninn
-  ADR-37 (`listNotes`, Proposed) — ADR-33.
+  ADR-37 (`listNotes`, **Accepted 2026-11-18**, implementation owed) — ADR-33.
 - `docs/Ground Truth Refactor Design.md` is the one design doc of that day marked **"Implemented in
   `main`"** — ADR-13 owns it.
 - `f11` becomes a fixture for a component that no longer exists when the loop lands; the ruling is to

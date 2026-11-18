@@ -555,3 +555,38 @@ UI leg, TESTING1 redefinition, one merged smoke, one release. Cross-references v
 and `src/ops/loop.ts` measured **absent**, as planned. The canonical pointer to the plan is in
 `Muninn/docs/Tracked Issues.md`; Huginn's stub stays a stub, and this report is the second place the
 plan is named, as the work record — no issue list, no duplicate statuses.
+
+**Dated 2026-11-18 — T4 ruled.** Dan ruled compute threading: **"Declared limitation, we can revisit if
+the problem bites."** The ruling is Muninn `docs/decisions/adr-43.md` — the details are not restated here.
+This pass wrote **3 files**, pointers only: `docs/Op Loop Red Plan.md` (row 67 marked ruled, Stage 0's T4
+gate replaced by the closed state, Stage 11 gains the turn-receipt obligation that belongs to this plan — a
+partial `list` says it is partial, `total` against the returned count —, §6's gate order loses T4, the
+cross-reference list gains Muninn `adr-43.md`, and §5 records a citation correction: the list cited
+**ADR-35 (compute threading)** among Huginn's ADRs, which is **Muninn's** ADR-35; Huginn's ADR-35 is
+`docs/decisions/adr-35.md`, the `isDesktopOnly` supersession text), `docs/Tracked Issues -- Pointer.md`
+(T4 moved to the closed paragraph), and `README.md` (the gate list is **T15** and **T13**). The plan is now
+**244** lines (measured `wc -l`; the record above names 237 at writing). `Huginn/docs/Serial Contextual
+Operations Design (Ruled).md` is **not edited** — it is law; the ruling is in Muninn, the law's home.
+**No code, no fixture, no `main.js`, no version, no tag, no release.** Receipts at HEAD `e4ccbd9`
+(`origin/main` = `e4ccbd9`, `git rev-list --count origin/main..HEAD` = **0**, tree clean before this pass)
+with this pass's docs in the tree: `TYPECHECK EXIT:0`, `FIXTURES EXIT:0`, **30 `VERDICT: GREEN`** [R].
+Muninn at HEAD `c87def1`, tree clean, pushed: `TYPECHECK EXIT:0`, **26 `VERDICT: GREEN`** (`f01`–`f26`),
+`FIXTURES LOOP DONE` [R]. Live doc set measured before this pass: **52** tracked files
+(`git ls-files docs README.md CHANGELOG.md SECURITY.md CONTRIBUTING.md`). A commit cannot carry its own
+hash.
+
+**Dated 2026-11-18 — T15 is ruled; the mirror's contract is Muninn `adr-37.md`.** Dan ruled the
+`listNotes` door: **"Of course I agree the door."** … **"1, 2, 3, 4 agreed. 5. recommendation accepted.
+6. That waits on that proposed addons list."** **The contract is recorded once, in Muninn `adr-37.md`
+(Accepted), and is not restated in this repo.** Written this pass: `docs/decisions/adr-33.md` (status
+**Proposed → Accepted**, body rewritten as the acceptance-time text — **the contract is Muninn's**, this
+ADR carries the mirror's obligations), `docs/decisions/index.md` (row 33, dated addendum),
+`docs/Tracked Issues -- Pointer.md` (T15 to the closed paragraph, **T37** added), `README.md` (the plan's
+gate list is **T13** alone), `docs/Op Loop Red Plan.md` (Stage 0, Stage 1's `f27` assertion list pointing
+at `adr-37.md`, Stage 11's disclosure obligation, §6's gates, the cross-references), this report, and
+`CHANGELOG.md`'s record. Two wording corrections to my own earlier pass record: `FIXTURES EXIT:0` named a
+label, not a command — `npm run fixtures` is the command that exists in Huginn at `package.json:11`, and
+Muninn gained the same chain on Dan's authorization, so a pass record names what is reproducible; the
+measured receipts for both repos are `EXIT:0` with **30 `VERDICT: GREEN`** (Huginn) and **26
+`VERDICT: GREEN`** (Muninn). The pass's own drift is recorded in Muninn's report §18 items 13–14.
+**No code, no fixture, no `main.js`, no version, no tag, no release. T13 is the loop's only remaining gate.**

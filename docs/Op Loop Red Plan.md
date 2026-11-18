@@ -15,7 +15,8 @@ receipt not persisted; command palette stays single-shot; verbosity is model-fac
 filter; no intermediate `0.1.0-test.21` — `1bbc908` plus the whole loop land in one release with one
 merged manual smoke). **That document is law.** ADR-34 is the fixture plan of record. ADR-33
 (`listNotes` in the mirror, **Proposed**) and Muninn ADR-37 (the same contract, **Proposed**) are
-the gates: **ruling owed before any of this is implemented**.
+the gates: **ruling owed before any of this is implemented**. Muninn **ADR-43** (Dan, 2026-11-18) is
+law for the loop's `list`: the main-thread limitation is declared, and the ruling is there.
 
 **Sequencing is binding (Dan, 2026-11-15): Muninn `api.ts` first, then the Huginn mirror, then
 `list` in the loop. Huginn cannot lead.** Vault enumeration in Huginn
@@ -64,7 +65,7 @@ first-green guard needs written justification before construction (Muninn ADR-7,
 | Vault-rooting | `src/ui/path-utils.ts:8-16` — `normalizeNotePath` appends `.md` and skips `?#[]` anchors; **no traversal check**: `../x.md` passes through (invariant 3, red now) |
 | UI single-shot leg | `src/ui/chat-view.ts:266` (dispatch entry), `:268-271` and `:280-283` (abort re-checks), `:284` (`runSkillFromChat`), `:305-351` (`runSkillFromChat` body: harness run, abort → `[Interrupted]`, schema failure, ground-truth notice, `renderRunResult`). Replaced by the loop driver |
 | Bound setting | `grep turnOpBound src/settings.ts` = **0 hits** — the bound and its slider do not exist (invariant 6, staged red) |
-| Semantic cap precedent | `src/api.ts:228` — `SEMANTIC_SEARCH_HARD_CAP = 10000`; `grep Worker` in Muninn `src/` = **0 hits** (T4, ADR-35, binding on the loop: many calls per turn on a bounded main thread) |
+| Semantic cap precedent | `src/api.ts:228` — `SEMANTIC_SEARCH_HARD_CAP = 10000`; `git grep -il worker HEAD -- src` = **0 hits in Muninn, 0 in Huginn** (measured 2026-11-18). **T4 ruled 2026-11-18 — declared limitation** (Dan: "Declared limitation, we can revisit if the problem bites"). Muninn `adr-43.md` is the ruling; the loop's `list` inherits the limitation, and the turn-receipt obligation that follows is in Stage 11 |
 | Huginn fixture chain | `package.json:11` — single `&&` hunk ending `… && tsx src/fixtures/f28.ts && tsx src/fixtures/f29.ts && tsx src/fixtures/f30.ts`; **next number f31**, appended with no gaps (ADR-22) |
 | UI-leg fixture support | `src/fixtures/fake-app.ts` is tracked: the mapped `obsidian` fake, test-only, never bundled, because `import { … } from 'obsidian'` throws `ERR_MODULE_NOT_FOUND` under tsx (ADR-22) |
 | Memory preconditions | `docs/TESTING1.md:90, 184, 208, 229, 333` assert memory **gains**; Dan deleted all memory files 2026-11-17 (T10 closed), so the scenarios start from a clean slate and the stale-correction precondition is discharged |
@@ -72,26 +73,28 @@ first-green guard needs written justification before construction (Muninn ADR-7,
 ## 3. The sequence
 
 **Stage 0 — rulings owed before any code.**
-**T15**: accept the `listNotes` contract (Muninn `docs/decisions/adr-37.md`, Huginn
-`docs/decisions/adr-33.md`, both **Proposed**). Without it there is no door, so `list` cannot exist
-and no stage below runs.
-**T13**: the numbering ruling. Muninn's next fixture is **f27**; Huginn's next is **f31** (the loop);
-the Memory Feedback Loop ranking fixtures must start at **f37**, because the guide's F26–F30 collide
-with the taken chains. The guide's F-numbers get conformed to the ruling.
-**T4**: compute threading. Cheap ruling = declare the limitation with disclosure (the cap, chunked
-scan, aborts); expensive ruling = a worker. Binding on the loop: a turn makes many calls.
+**T15 — ruled 2026-11-18** (Muninn `docs/decisions/adr-37.md` **Accepted**; Huginn `adr-33.md` follows).
+The door exists in the contract; the code that makes it real is **a separate authorization**, so no stage
+below runs until that authorization is given. **T13**: the numbering ruling, the loop's **only remaining
+gate** — Muninn's next fixture is **f27**; Huginn's next is **f31** (the loop); the Memory Feedback Loop
+ranking fixtures must start at **f37**, because the guide's F26–F30 collide with the taken chains. The
+guide's F-numbers get conformed to the ruling.
+**T4 — closed 2026-11-18** (Muninn `adr-43.md`): declared limitation. Nothing is owed here; the loop
+inherits the limitation, and the obligation that lands in this plan is in Stage 11.
 Commit/push authorization is asked for at every stage; no bump, tag, release, archive, or deletion
 without Dan.
 
 **Stage 1 — Muninn: the sixth door earns its red (new fixture f27).**
-`f27.ts` is authored from ADR-37's contract text, not from observed behavior (ADR-10), exercising the
-public API only (ADR-7). It builds `createMuninnApi(openStore(':memory:'), null, laneReindexer(lane))`
-in the f26 pattern, ingests notes through the lane, and asserts: the public API exposes **six**
-doors; `listNotes` returns `{ notes: [{path, title, mtime, tags}], total }`; `ORDER BY path ASC`;
-`total` counted **before** `limit`; a capped result self-discloses that it is partial; absent `limit`
-means no cap; heading-less note → `title: ''`; zero-chunk notes appear (the watermark records every
-walked file); `folder` is a path prefix; `query` uses scan semantics and discloses `mode`; every
-failure path returns `null` with a console reason via `fail()`.
+`f27.ts` is authored from **`adr-37.md`'s contract text** (the contract of record — the fields, the answer
+shape, and the set/ranking rule are that document, not restated here), not from observed behavior (ADR-10),
+exercising the public API only (ADR-7). It builds `createMuninnApi(openStore(':memory:'), null,
+laneReindexer(lane))` in the f26 pattern, ingests notes through the lane, and asserts **every clause of the
+contract**, with the seams this plan has measured as its backing: the public API exposes **six** doors;
+`ORDER BY path ASC` is the single stable order; a capped result self-discloses that it is partial; absent
+the transport cap means no cap; a heading-less note still gives identity; zero-chunk notes appear (the
+watermark records every walked file, `intake/lane.ts:431-435` [R]); a folder filter is a path prefix; the
+semantic answer is labelled as a ranking; every failure path returns `null` with a console reason via
+`fail()` (`api.ts:77-83` [R]). `npm run fixtures`' chain grows by appending f27, no gaps.
 f27's first legs use duck-typed accessors, not a typed `listNotes` reference, so the red is a real
 interface behaving wrongly, not a type error (ADR-37 item 4). **Red receipt:** f27 fails at committed
 code — the API has five doors. `seq -w 1 26` becomes `1 27` in the run-all script file.
@@ -165,7 +168,10 @@ abort threaded to every call, per-op `clientFailed` inherited from `harness.ts:8
 `chat-view.ts:266-351` is replaced by the loop driver; `dispatch.ts` is subsumed; the command palette
 stays single-shot (R10), Scenario J's command-modal leg survives verbatim. `parser.ts` untouched
 unless a per-recipe bound is ruled. UI-leg fixtures enter through `src/fixtures/fake-app.ts`.
-The turn receipt is not persisted.
+The turn receipt is not persisted. A partial answer says it is partial: the receipt compares the
+door's disclosed set size against the returned count, alongside the bound notice (Muninn `adr-43.md` —
+a declared limitation is only legitimate when the result discloses itself). The doctrine is Muninn
+`adr-37.md`'s; Stage 11's job is that the receipt renders it.
 
 **Stage 12 — the testing contract, redefined with the loop.**
 `docs/TESTING1.md`: Scenarios B, D, F, I plus the E/G chat legs redefined (T20), and a new loop
@@ -215,6 +221,9 @@ six fixtures. `f11` is re-pointed, not deleted.
   constructed at **121** and **248**, `awaitMuninnReady` at **181**, `discoverMuninnApi` at **219**,
   the `typeof muninn.getMuninnApi !== 'function'` guard at **222**, the call at **225**. Scenario F is
   `TESTING1.md:163`; its step 4 and its expected results cover Stop at the approval modal.
+- (2026-11-18) The cross-reference list cited **ADR-35 (compute threading)** in the Huginn ADR list:
+  that is **Muninn's** ADR-35. Huginn's ADR-35 is the `isDesktopOnly` supersession text
+  (`docs/decisions/adr-35.md`). The citation is re-scoped, and Muninn `adr-43.md` is added to the list.
 
 ## 6. Authorization gates
 
@@ -222,16 +231,21 @@ Nothing **in the code** is authorized: no coding, no fixture, no code commit, no
 no tag, no release. The docs pass that carries this plan is Dan's authorized act, batched: **one
 commit per repo per pass** (Dan, 2026-11-17 — "don't just commit every two seconds for one document"),
 so this pass carries the plan, the README bullet, the docket pointer, and the hash-recording lines as
-one commit per repo. The gates are, in order: T15 ruling → T13 numbering ruling → T4 ruling → Muninn
+one commit per repo. **T15 ruled 2026-11-18** (Muninn `adr-37.md` **Accepted**; the contract is law, the
+code is a separate authorization), so the gates are, in order:
+T13 numbering ruling → **authorization to implement the door** → Muninn
 f27 red (authorization to build) → Muninn implementation → Muninn release act → Huginn mirror →
 `f31`–`f36` (one commit per red, receipts pasted, push asked for each time) → the UI leg →
 `TESTING1` redefinition → merged manual smoke → one release with Dan's authorization.
 
 **Cross-references:** `docs/Serial Contextual Operations Design (Ruled).md`; ADR-22 (chain rule),
 ADR-25 (Scenario A), ADR-27 (determinism), ADR-28 (base ban, no SQL in doors), ADR-31 (batch
-superseded), ADR-33 (mirror, Proposed), ADR-34 (fixture plan of record), ADR-35 (compute threading),
-ADR-36 (prompt budget); Muninn ADR-7 (earned red), ADR-10 (contract text first), ADR-11 (typecheck
+superseded), ADR-33 (mirror, **Accepted** — the ruling is Muninn `adr-37.md`), ADR-34 (fixture plan of record), ADR-36 (prompt budget);
+Muninn ADR-7 (earned red), ADR-10 (contract text first), ADR-11 (typecheck
 baseline), ADR-14 (mobile), ADR-21 (staffing), ADR-33 (plugin boundary), ADR-34 (Plugin 2 boundary),
-ADR-36 (freeze), ADR-37 (`listNotes`, Proposed), ADR-38 (named oracle), ADR-40 (documents live in the
-repo); `Muninn/docs/Tracked Issues.md` rows T4, T9, T13, T15, T20 (the docket is canonical for both
+ADR-35 (compute threading), ADR-36 (freeze), ADR-37 (`listNotes`, **Accepted** 2026-11-18 — the contract
+of record), ADR-38 (named oracle),
+ADR-40 (documents live in the repo), ADR-43 (the declared limitation, **T4** closed);
+`Muninn/docs/Tracked Issues.md` rows T4, T9, T13, T15 (**closed 2026-11-18**), T20, T37 (the proposed
+add-ons list, deferred by Dan's ruling of 2026-11-18) — the docket is canonical for both
 projects, Huginn keeps `docs/Tracked Issues -- Pointer.md`).
