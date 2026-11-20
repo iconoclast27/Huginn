@@ -173,9 +173,11 @@ docket T14-adjacent.
 
 **The Memory Feedback Loop is design, unimplemented** (ADR-30, measured [R]): no `ranker.ts`;
 `grep -r "scoreEntry|reinforce|memoryBudget|rank" src` → 0 hits; no memory sub-object in `settings.ts`
-(grep `memory`/`Memory` → 0 hits). Its Implementation Guide plans fixtures **F26–F30** (`:442-446`, `:485`)
-against a chain whose shipped numbers f26–f30 are taken (`package.json:11` [R]) — the loop fixtures are
-f31–f36, ranking fixtures **f37+** if built (numbering ruling owed to Dan, T13).
+(grep `memory`/`Memory` → 0 hits). Its Implementation Guide drafted fixture numbers **"F26–F30"**
+(`:442-446`, `:485`) — those were **Huginn-sequence draft numbers**, and the drafted set is now entirely
+shipped (`package.json:11` [R]); the "collision" framing was a documentation error, reconciled by Dan's
+ruling of 2026-11-20 (T13): the chains are independent, cited numbers carry the `M-`/`H-` prefix, and the
+loop fixtures are H-f31–H-f36, ranking fixtures **H-f37+** if built.
 
 ## 10. Settings and LLM client as-built
 
@@ -359,8 +361,8 @@ repo root (ADR-17, `f2def43`); `fake-app.ts` maps `obsidian` for tsx (ADR-22).
 **Owed rulings (Dan's, not the executor's):**
 1. **Muninn ADR-37 (`listNotes`) ruling** — the sixth door; gates the loop's `list` op and the
    `muninn:`/`note-has-heading` primitives. ADR-33; T15.
-2. **Memory Feedback Loop ruling + release slot** (T13, ADR-30) — ranking/scoring unimplemented; the
-   guide's F26–F30 numbering collides with the shipped chain (next: f31 for the loop, f37+ for ranking).
+2. **Memory Feedback Loop ruling + release slot** — **closed 2026-11-20 (T13)**: chains independent,
+   cited numbers carry `M-`/`H-`; ranking fixtures slot after the loop at H-f37+.
 3. **`versions.json` completeness in both projects** (T24, T25) — release-hygiene ruling.
 4. **Bounded tag-assignment retry** (T12, ADR-19) — schedules after the merged release with Scenario B
    expectations.

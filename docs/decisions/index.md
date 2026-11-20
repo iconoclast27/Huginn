@@ -146,3 +146,25 @@ repo is the **turn-receipt disclosure** (Stage 11 of `docs/Op Loop Red Plan.md`)
 is partial, a semantic answer is labelled a ranking, and a capped scan is never served as complete.
 No Huginn ADR is added, and no Huginn ADR body is edited beyond `adr-33.md`, which was never accepted
 before (ruling 2, ADR-6).
+
+## Addendum (2026-11-20) — **T13 ruled and closed**: independent chains, the M-/H- designation convention
+
+Dan ruled (2026-11-20), closing **T13**: the difficulty with fixture numbering was a **misunderstanding by
+the agents involved** — the numbering of fixtures in each project has always been **independent** (Muninn
+`f01`–`f26`, Huginn `f01`–`f30`, each its own `package.json` chain [R]); merged documentation treated the
+sequences as shared, manufacturing a "collision" that never existed on disk. Reconciliation, verbatim in
+intent: *"we need to just reconcile the fact that the numbering is separate … include designation in the
+documentation for the source of the fixture number being referenced."*
+
+**Standing convention (ruled, in force from this pass forward):** every fixture number cited in prose,
+docs, or ADR text carries its project prefix — **`M-fNN`** (Muninn) or **`H-fNN`** (Huginn). Bare `fNN`
+references are conformed as the documents that cite them are touched; history stays history (the archived,
+then deleted, Memory Feedback Loop Implementation Guide's draft "F26–F30" were Huginn-sequence numbers,
+recovered at `0a066d7`; no live restatement uses bare numbers).
+
+**Release slotting (ruled, confirmed):** the Memory Feedback Loop's ranking fixtures **follow the op
+loop's H-f31–H-f36 and start at H-f37** — f37 as the first newly-authored Huginn number after the loop
+reserves f31–f36.
+
+**T13 closes.** No ADR body is edited (ruling 2, `adr-06.md`), no code, fixture, version, tag, or release
+is touched by this act — docs-only conform, one commit per repo.

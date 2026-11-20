@@ -75,10 +75,16 @@ first-green guard needs written justification before construction (Muninn ADR-7,
 **Stage 0 — rulings owed before any code.**
 **T15 — ruled 2026-11-18** (Muninn `docs/decisions/adr-37.md` **Accepted**; Huginn `adr-33.md` follows).
 The door exists in the contract; the code that makes it real is **a separate authorization**, so no stage
-below runs until that authorization is given. **T13**: the numbering ruling, the loop's **only remaining
-gate** — Muninn's next fixture is **f27**; Huginn's next is **f31** (the loop); the Memory Feedback Loop
-ranking fixtures must start at **f37**, because the guide's F26–F30 collide with the taken chains. The
-guide's F-numbers get conformed to the ruling.
+below runs until that authorization is given. **T13 — ruled 2026-11-20, and closed**: the fixture
+numbering was never a cross-project collision. **The two projects' fixture chains are independent**
+(Muninn `f01`–`f26`, Huginn `f01`–`f30`, each its own `package.json` chain [R]) — the "collision" was a
+documentation-convention failure by merged documentation, now reconciled by Dan's ruling: **every
+fixture number cited in prose or docs is designated with its project prefix — `M-fNN` for Muninn,
+`H-fNN` for Huginn.** Under the ruled convention the released numbers are: Muninn's next is
+**M-f27** (the door's red), Huginn's next is **H-f31** (the loop, H-f31–H-f36); the Memory Feedback
+Loop's ranking fixtures are release-slotted **after the op loop, starting at H-f37**. The guide's
+former "F26–F30" were Huginn-sequence draft numbers, not a collision; any live restatement of them
+uses the H- designation.
 **T4 — closed 2026-11-18** (Muninn `adr-43.md`): declared limitation. Nothing is owed here; the loop
 inherits the limitation, and the obligation that lands in this plan is in Stage 11.
 Commit/push authorization is asked for at every stage; no bump, tag, release, archive, or deletion
@@ -201,6 +207,13 @@ require Dan's explicit authorization, asked for only when the loop is testable a
 | 5 | Stop parity | **First-green with written justification** (gate leg) + real red for the between-ops leg | `approval-gate.ts:41-44, 47-50`; `harness.ts:142-143`; f27 legs; Scenario F |
 | 6 | Bound | **Staged** | `settings.ts` has no `turnOpBound` (0 hits) |
 
+**Finalized requirements:**
+- Constraint 1: Verify `harness.ts` line 29-36 has no `contextUsed` reference
+- Constraint 2: Confirm `dispatch.ts` lines 94/97/104 return null without logging
+- Constraint 3: Ensure `path-utils.ts` line 8-16 doesn't validate path traversal
+- Constraint 5: Document `approval-gate.ts` and `harness.ts` references for Stop parity
+- Constraint 6: Check `settings.ts` for missing `turnOpBound` implementation
+
 `f28` (catalog ↔ `.md` sync) and `f30` (non-path params resolve to `null`) stay green through all
 six fixtures. `f11` is re-pointed, not deleted.
 
@@ -246,6 +259,7 @@ baseline), ADR-14 (mobile), ADR-21 (staffing), ADR-33 (plugin boundary), ADR-34 
 ADR-35 (compute threading), ADR-36 (freeze), ADR-37 (`listNotes`, **Accepted** 2026-11-18 — the contract
 of record), ADR-38 (named oracle),
 ADR-40 (documents live in the repo), ADR-43 (the declared limitation, **T4** closed);
-`Muninn/docs/Tracked Issues.md` rows T4, T9, T13, T15 (**closed 2026-11-18**), T20, T37 (the proposed
+`Muninn/docs/Tracked Issues.md` rows T4, T9, T13 (**closed 2026-11-20** — independent chains, M-/H-
+designation convention, Memory Loop slot at H-f37+), T15 (**closed 2026-11-18**), T20, T37 (the proposed
 add-ons list, deferred by Dan's ruling of 2026-11-18) — the docket is canonical for both
 projects, Huginn keeps `docs/Tracked Issues -- Pointer.md`).

@@ -8,9 +8,12 @@ Huginn issues are tracked in that docket, not here. Rows that bear on Huginn: **
 receipt), **T6** (folder-rename child paths), **T7** (`onunload` durability), **T8** (ANN / vector
 index), **T9** (Scenario F never smoked — the merged manual
 smoke is the release gate), **T11** (verbose coverage for the four channel-less recipes), **T12** (bounded
-tag-assignment retry), **T13** (Memory Feedback Loop release, and
-the **fixture numbering ruling owed**: the Implementation Guide plans F26–F30 against the already-taken
-`f26–f30` chain, so new fixtures must start at **f31/f37** — a ruling, not an implementation decision),
+tag-assignment retry), **T13** (Memory Feedback Loop release —
+**closed 2026-11-20 by Dan's ruling**: the two projects' fixture chains are **independent**, so no
+numbering collision ever existed — the guide's draft "F26–F30" were Huginn-sequence numbers misread as
+cross-project; **standing convention: every cited fixture number carries its project prefix, `M-fNN`
+(Muninn) or `H-fNN` (Huginn)**; release slotting: Memory Loop ranking fixtures follow the op loop's
+H-f31–H-f36 and start at **H-f37**),
 **T14** (null-failure cause, blocked on recurrence), **T20** (Scenarios B, D, F, I and the E/G chat legs to
 be redefined for the op loop), **T37** (the proposed add-ons list — Dataview integration and structural
 predicates, deferred by Dan's ruling of 2026-11-18, "much, much later").
@@ -30,6 +33,17 @@ turn-receipt disclosure, `docs/Op Loop Red Plan.md` Stage 11. **T15** — the en
 contract of record is Muninn `docs/decisions/adr-37.md` (**Accepted**, implementation owed); `adr-33.md`'s
 status follows the ruling, and the code gates for the loop are **T13** alone. **Parked by Dan, not
 open for the executor:** T5 (ruling 11). **Named debts needing a ruling that is not cheap:** T7, T8.
+
+name-collision was a documentation-convention failure by merged documentation, now reconciled (Dan,
+2026-11-20): **the two chains are independent — M-f01–M-f26 in Muninn, H-f01–H-f30 in Huginn, each its
+own `package.json` chain [R] — and every cited fixture number carries its project prefix (`M-fNN` /
+`H-fNN`) in all documentation. The guide's draft "F26–F30" were Huginn-sequence numbers (H-f26–H-f30,
+already shipped), never a collision. Standing convention in force from this pass forward; live text is
+conformed, history stays history.**
+
+**T13's ruling also settles release slotting** (Dan, 2026-11-20, confirmed): the Memory Feedback Loop's
+ranking fixtures **follow the op loop's H-f31–H-f36 and start at H-f37** — f37 as the first newly-authored
+Huginn number after the loop reserves f31–f36.
 
 **Huginn keeps no issue list of its own.** If a finding is raised in Huginn, it goes on the Muninn docket and
 stays there until investigated.
