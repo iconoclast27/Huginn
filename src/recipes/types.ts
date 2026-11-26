@@ -1,0 +1,194 @@
+// =============================================================================
+// Huginn — Recipe Types
+// src/recipes/types.ts
+//
+// A recipe is a declarative form the model fills. The harness owns every side
+// effect. Each recipe is one bounded task, a strict output contract, and an
+// apply method that runs only after schema and ground-truth validation.
+// =============================================================================
+
+export type RecipeRiskClass = 'read-only' | 'suggest';
+
+export interface RecipeMetadata {
+    name: string;
+    version: string;
+    modelTier: 'fast' | 'capable';
+    riskClass: RecipeRiskClass;
+}
+
+export interface RecipeTrigger {
+    /** Human-readable trigger condition; harness may later dispatch by regex. */
+    description: string;
+}
+
+export interface RecipeInput {
+    /** Stable key used in the recipe template. */
+    key: string;
+    /** Description shown to the model; not a prompt. */
+    description: string;
+    /** Source of truth the harness gathers before rendering. */
+    source: 'query' | 'path' | 'vocabulary' | 'constant' | 'recipe-param' | 'content';
+    /** For source 'query', the input key whose value is the search string. */
+    queryKey?: string;
+}
+
+export interface RecipeOutputSchema {
+    /** Top-level JSON schema describing the model's response. */
+    type: 'object';
+    required?: string[];
+    properties: Record<string, JsonSchema>;
+}
+
+export type JsonSchemaType = 'string' | 'number' | 'boolean' | 'array' | 'object';
+
+export interface JsonSchemaBase {
+    type: JsonSchemaType;
+    description?: string;
+    enum?: unknown[];
+}
+
+export interface JsonStringSchema extends JsonSchemaBase {
+    type: 'string';
+}
+
+export interface JsonNumberSchema extends JsonSchemaBase {
+    type: 'number';
+}
+
+export interface JsonBooleanSchema extends JsonSchemaBase {
+    type: 'boolean';
+}
+
+export interface JsonArraySchema extends JsonSchemaBase {
+    type: 'array';
+    items: JsonSchema;
+}
+
+export interface JsonObjectSchema extends JsonSchemaBase {
+    type: 'object';
+    properties?: Record<string, JsonSchema>;
+    required?: string[];
+}
+
+export type JsonSchema =
+    | JsonStringSchema
+    | JsonNumberSchema
+    | JsonBooleanSchema
+    | JsonArraySchema
+    | JsonObjectSchema;
+
+export interface RecipeValidationRule {
+    /** Registered ground-truth primitive that performs the check. */
+    primitive: string;
+    /** JSON pointer path inside the output object to check. */
+    path: string;
+    /** Optional human-readable explanation of the check, shown in approval/chat UI. */
+    description?: string;
+    /** Optional parameters for the primitive. */
+    params?: Record<string, unknown>;
+}
+
+export interface Recipe {
+    metadata: RecipeMetadata;
+    trigger: RecipeTrigger;
+    inputs: RecipeInput[];
+    instructions: string;
+    outputSchema: RecipeOutputSchema;
+    applyMethod: string;
+    /** Optional parameters consumed by generic apply methods. */
+    applyParams?: ApplyMethodParams;
+    validation: RecipeValidationRule[];
+    /** Optional render hint for read-only skills in the chat sidebar. */
+    chatRender?: ChatRenderTemplate;
+}
+
+export interface LoadedRecipe extends Recipe {
+    /** Absolute or vault-relative path, depending on loader. */
+    sourcePath: string;
+}
+
+export type ChatRenderTemplateType = 'paragraph' | 'numbered-list' | 'bulleted-list' | 'json';
+
+export interface ChatRenderTemplate {
+    template: ChatRenderTemplateType;
+    /** JSON pointer path inside the output object for the value to render. */
+    field: string;
+    message?: string;
+}
+
+export interface GatheredInput {
+    key: string;
+    value: unknown;
+    /** §4.2 disclosure ledger: the vault path the machinery used when it took this value.
+     *  Set only for machinery-taken vault content (the content lane); user-supplied
+     *  params carry no path and are never disclosed (R5). */
+    path?: string;
+}
+
+export interface RecipeRenderContext {
+    recipe: LoadedRecipe;
+    inputs: GatheredInput[];
+}
+
+export interface ParsedModelOutput {
+    /** Raw output as returned by the LLM. */
+    raw: string;
+    /** Parsed JSON, if syntactically valid. */
+    json: unknown | undefined;
+}
+
+export interface ValidationError {
+    path: string;
+    message: string;
+}
+
+export interface ValidationResult {
+    ok: boolean;
+    errors: ValidationError[];
+}
+
+export interface DiffEntry {
+    path: string;
+    oldValue: unknown;
+    newValue: unknown;
+}
+
+export interface DiffResult {
+    changes: DiffEntry[];
+}
+
+export interface ApplyResult {
+    applied: boolean;
+    message: string;
+}
+
+export interface ApplyContext {
+    recipe: LoadedRecipe;
+    output: unknown;
+    inputs: GatheredInput[];
+}
+
+/** Generic parameters supplied by a recipe for its chosen apply method. */
+export interface ApplyMethodParams {
+    [key: string]: unknown;
+}
+
+export interface RecipeRunResult {
+    recipeName: string;
+    renderedPrompt: string;
+    parsedOutput: ParsedModelOutput;
+    schemaValid: boolean;
+    schemaErrors: ValidationError[];
+    groundTruthValid: boolean;
+    groundTruthErrors: ValidationError[];
+    /**
+     * Proposal values that are already true in the vault. These are stripped from
+     * the proposal before approval, so the user sees and approves only what would
+     * actually change. A drop is vault state, not a model mistake: it never writes
+     * a correction.
+     */
+    groundTruthDropped: string[];
+    diff: DiffResult;
+    approved: boolean | null;
+    applyResult: ApplyResult | null;
+}

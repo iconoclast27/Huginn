@@ -1,0 +1,109 @@
+/* Huginn — sidebar chat view styles */
+
+.huginn-chat-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.huginn-chat-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 8px;
+}
+
+.huginn-chat-context {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.huginn-chat-context small {
+    opacity: 0.8;
+}
+
+.huginn-chat-refresh,
+.huginn-chat-remember {
+    align-self: flex-start;
+    flex-shrink: 0;
+    font-size: 0.8em;
+}
+
+.huginn-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 8px;
+    min-height: 120px;
+}
+
+.huginn-chat-message {
+    display: flex;
+    flex-direction: column;
+    max-width: 92%;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    user-select: text;
+    -webkit-user-select: text;
+    line-height: 1.45;
+}
+
+.huginn-chat-message-role {
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    opacity: 0.8;
+}
+
+.huginn-chat-message-body p:first-child {
+    margin-top: 0;
+}
+
+.huginn-chat-message-body p:last-child {
+    margin-bottom: 0;
+}
+
+.huginn-chat-message-user {
+    align-self: flex-end;
+    background-color: var(--interactive-accent, var(--background-modifier-form-field));
+    border-bottom-right-radius: 2px;
+    color: var(--text-on-accent, var(--text-normal));
+}
+
+.huginn-chat-message-assistant {
+    align-self: flex-start;
+    background-color: var(--background-primary-alt);
+    border-bottom-left-radius: 2px;
+    color: var(--text-normal);
+}
+
+.huginn-chat-input-container {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.huginn-chat-input {
+    flex: 1;
+    min-height: 60px;
+    resize: vertical;
+}
+
+.huginn-chat-send {
+    flex-shrink: 0;
+    min-width: 64px;
+}
