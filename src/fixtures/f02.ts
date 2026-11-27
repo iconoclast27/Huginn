@@ -9,6 +9,18 @@
 //     S3  sanitizeSettings preserves valid user values.
 //     S4  sanitizeSettings rejects invalid numbers and falls back to defaults.
 //     S5  sanitizeSettings preserves warmupOnFocus and defaultTargetPath.
+//     S6  The approval-mode enum (D-4's law: NEVER / ASK / AUTOAPPROVE / YOLO,
+//         Restart Ledger §1 and §3 — the enum itself is law, the detector is
+//         a later mechanism) rides the settings from the FIRST commit of the
+//         rebuild: the default is a member of the enum, sanitize preserves
+//         valid members, and invalid values fall back. Conform 2026-11-27,
+//         manifest-leg re-anchor at the settings seam (H-f02 SALVAGE row).
+//         RED at the scratch HEAD copy (2026-11-27, c000770): the five
+//         member legs FAIL (no approvalMode in committed settings); the
+//         non-member fallback leg is green-at-both-sides at that HEAD
+//         vacuously (field absent both sides, undefined === undefined) —
+//         a post-landing guard, justified by the same row's invariant
+//         (sanitize falls back on invalid values).
 //
 // RUNNER: plain Node via tsx.
 //   npx tsx src/fixtures/f02.ts
@@ -56,6 +68,14 @@ function main(): void {
     check('S4 accepts numeric string timeout', sanitizeSettings({ chatTimeoutMs: '1000' as unknown as number }).chatTimeoutMs === 1000);
     check('S4 rejects empty chat model', sanitizeSettings({ ollamaChatModel: '' }).ollamaChatModel === DEFAULT_SETTINGS.ollamaChatModel);
     check('S4 rejects empty URL', sanitizeSettings({ ollamaUrl: '' }).ollamaUrl === DEFAULT_SETTINGS.ollamaUrl);
+
+    // S6 — approval enum (D-4's law; default ASK is an executor choice, disclosed)
+    check('S6 default approval mode is ASK', DEFAULT_SETTINGS.approvalMode === 'ASK');
+    check('S6 preserves NEVER', sanitizeSettings({ approvalMode: 'NEVER' }).approvalMode === 'NEVER');
+    check('S6 preserves ASK', sanitizeSettings({ approvalMode: 'ASK' }).approvalMode === 'ASK');
+    check('S6 preserves AUTOAPPROVE', sanitizeSettings({ approvalMode: 'AUTOAPPROVE' }).approvalMode === 'AUTOAPPROVE');
+    check('S6 preserves YOLO', sanitizeSettings({ approvalMode: 'YOLO' }).approvalMode === 'YOLO');
+    check('S6 rejects a non-member', sanitizeSettings({ approvalMode: 'yolo' }).approvalMode === DEFAULT_SETTINGS.approvalMode);
 
     console.log(
         failures === 0

@@ -8,6 +8,14 @@
 
 export type ReportBackVerbosity = 'minimal' | 'normal' | 'verbose';
 
+/**
+ * D-4's gate law (Restart Ledger §1 and §3): the approval-mode enum is law
+ * from the FIRST commit of the rebuild. The AUTOAPPROVE external-reading
+ * detector is a later mechanism (D-13 ruled the detector; the mechanism
+ * lands at the gate leg) — the enum itself is what ships now.
+ */
+export type ApprovalMode = 'NEVER' | 'ASK' | 'AUTOAPPROVE' | 'YOLO';
+
 /** Memory Feedback Loop, Step 8 (2026-11-23): per-kind retrieval budgets and the three
  *  score weights a tester can tune. Names mirror ranker.ts budgets and MemoryWeights.
  *  Conform 2026-11-26: the corrections kind's budgets were dropped with the kind (Dan's D-12). */
@@ -30,6 +38,10 @@ export interface HuginnSettings {
     reportBackVerbosity: ReportBackVerbosity;
     /** §6/R9 (ruled): the op loop's per-turn bound, default 12, slider-adjustable. */
     turnOpBound: number;
+    /** D-4's gate law: approval mode rides the settings from the first commit
+     *  (conform 2026-11-27, manifest leg). Default ASK is the executor's choice,
+     *  disclosed at the leg — Dan's to fix at ruling. */
+    approvalMode: ApprovalMode;
     /** Memory Feedback Loop, Step 8 (2026-11-23, docket addenda 28-31): retrieval budgets and
      *  the three score weights a tester can tune. First cut: defaults ride the ranker and the
      *  kinds; settings merge keeps old saved data valid. UI wiring is a later pass. */
@@ -44,6 +56,7 @@ export const DEFAULT_SETTINGS: HuginnSettings = {
     defaultTargetPath: 'notes/gamma.md',
     reportBackVerbosity: 'verbose',
     turnOpBound: 12,
+    approvalMode: 'ASK',
     memory: {
         userEntryBudget: 10,
         userCharBudget: 2000,
@@ -85,6 +98,9 @@ export function sanitizeSettings(saved: unknown): HuginnSettings {
     // falls back to the ruled default 12. Mirrors the chatTimeoutMs guard shape.
     if (typeof s.turnOpBound === 'number' && Number.isInteger(s.turnOpBound) && s.turnOpBound > 0) {
         out.turnOpBound = s.turnOpBound;
+    }
+    if (s.approvalMode === 'NEVER' || s.approvalMode === 'ASK' || s.approvalMode === 'AUTOAPPROVE' || s.approvalMode === 'YOLO') {
+        out.approvalMode = s.approvalMode;
     }
     // Loop Step 8: saved memory settings merge over the defaults field-wise; a missing
     // or malformed sub-object leaves the defaults intact (old saved data must not break).
