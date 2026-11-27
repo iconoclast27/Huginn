@@ -67,6 +67,12 @@ export interface ChatControllerOptions {
      *  Muninn adr-55.md (Accepted 2026-11-25) is the saved-memory law: the injector
      *  takes no date, and the selector's budgets bound the block. */
     getChatSummaryContext?: () => Promise<string> | string;
+    /** The teach channel (leg 5, Design §1 line 14: system (skill texts); D-10
+     *  channel 1). main.ts renders the loaded recipe catalog (renderSkillText);
+     *  a GETTER, not a snapshot — the recipe folder watcher reloads the catalog,
+     *  so edited skills apply on the NEXT send. Empty or absent → no block,
+     *  honest absence, never a fabricated header (f46 V6). */
+    getSkillText?: () => Promise<string> | string;
 }
 
 /** Response-length guidance keyed by the user's Report-back verbosity setting.
@@ -108,7 +114,17 @@ export class ChatController {
         // it — H-f15 S3's seam); the report-back length instruction rides per
         // send, never stored, so changing the setting applies on the next send.
         const storedSystem = session.messages.find((m) => m.role === 'system');
-        const systemPrompt = `${storedSystem?.content ?? ''}\n\nReport-back length: ${CHAT_VERBOSITY_INSTRUCTIONS[verbosity ?? 'verbose']}`.trim();
+        let systemPrompt = `${storedSystem?.content ?? ''}\n\nReport-back length: ${CHAT_VERBOSITY_INSTRUCTIONS[verbosity ?? 'verbose']}`.trim();
+        // The skill texts ride the SYSTEM position (Design §1 line 14: "system
+        // (skill texts) + tools (manifest schemas) + history"; D-10 channel 1).
+        // This is instruction position BY DESIGN — the R9 split: hostile tool
+        // DATA may ride only role:"tool" (f45 V5 polices that half); the teach
+        // half is here. A getter re-renders per send (the folder watcher's
+        // reload applies on the NEXT send); an empty catalog is honest absence.
+        if (this.opts.getSkillText) {
+            const skill = await this.opts.getSkillText();
+            if (skill.length > 0) systemPrompt += `\n\n${skill}`;
+        }
         const history: TurnMessage[] = session.messages
             .filter((m) => m.role !== 'system')
             .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }) as TurnMessage);

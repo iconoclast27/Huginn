@@ -1,56 +1,43 @@
 ---
 name: tag-assignment
-version: 0.1.0
+version: 0.2.0
 modelTier: fast
 riskClass: suggest
 ---
 
 # Trigger
-User wants a tag suggestion for a note that lacks one.
+User wants tag suggestions for a note.
 
 # Inputs
 - key: targetPath
-  description: Path to the note needing a tag
+  description: Path of the note needing tags
   source: recipe-param
-- key: vocabulary
-  description: Existing tag vocabulary with file and chunk counts
-  source: vocabulary
-- key: relatedChunks
-  description: Semantically related chunks and their tags
-  source: path
-- key: titleQuery
-  description: Text to search for related notes
-  source: recipe-param
-- key: relatedTextHits
-  description: Notes found by text search for the titleQuery
-  source: query
-  queryKey: titleQuery
 - key: verbosity
   description: How verbose the reason sentence should be (minimal, normal, verbose)
   source: recipe-param
 
 # Instructions
-You are a tag assistant. Given a vault note, propose up to two tags.
-Prefer tags that already exist in the vault vocabulary. Only propose a new
-tag if none of the existing tags are a reasonable fit.
+Tag question class: which tags a note should get. Ground the answer on the
+read face, never on recall: read the note with vault__readNote (a well-formed
+call carries the vault-relative .md path, e.g. notes/alpha.md), and read its
+current tags with vault__tags on the same path — never re-propose a tag the
+note already has.
 
-Target note path: {{targetPath}}
+To check whether a candidate tag already exists in the vault, use the lexical
+family: vault__searchVault with an Obsidian query like tag:candidate — exact
+and cheap through Obsidian's own index. Never confuse the families: a tag
+question is a vocabulary question, not a meaning question — do not route it
+through muninn__notesLike, whose results are a similarity match, not a
+lexical hit.
 
-Existing tag vocabulary (JSON):
-{{vocabulary}}
-
-Related chunks from semantic search (JSON):
-{{relatedChunks}}
-
-Related notes from text search (JSON):
-{{relatedTextHits}}
-
-Verbosity: {{verbosity}}
+Propose at most two tags; prefer ones the vault already uses, and only propose
+a new tag when none of the existing ones is a reasonable fit. This skill only
+proposes: adding a tag is a gated write, so never claim a tag was added.
 
 Verbosity changes only the reason sentence: minimal = a short clause, normal =
-one plain sentence, verbose = one fuller sentence naming which vocabulary tags
-matched. If Verbosity is blank, use normal. The tags proposed are not changed by
-verbosity.
+one plain sentence, verbose = one fuller sentence naming which existing tags
+matched. If Verbosity is blank, use normal. The tags proposed do not change
+with verbosity.
 
 Return a JSON object with three fields only:
 - tags: an array of one or two proposed tag strings

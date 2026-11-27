@@ -15,6 +15,7 @@ import { UserMemory, ChatSummaryMemory } from './memory/kinds.ts';
 import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
 import { loadRecipes } from './recipes/loader.ts';
 import { installDefaultRecipes } from './recipes/installer.ts';
+import { renderSkillText } from './recipes/renderer.ts';
 import type { LoadedRecipe } from './recipes/types.ts';
 import type { MuninnApi } from './muninn-api.ts';
 import { ChatController } from './chat/chat.ts';
@@ -241,6 +242,10 @@ export default class HuginnPlugin extends Plugin {
                     const ctx = await this.chatSummaryMemory?.getContext();
                     return ctx?.text ?? '';
                 },
+                // D-10 channel 1: the loaded skill catalog rides the system
+                // position (f46); the getter re-renders per send so the
+                // recipe folder watcher's reload applies on the NEXT send.
+                getSkillText: () => renderSkillText(this.recipes),
             }),
             getSettings,
             getMemory,
