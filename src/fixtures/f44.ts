@@ -48,6 +48,22 @@
 //   V6  Read families are never gated (Design Report §2, D-1/D-4): a verdict
 //       with mutation false never reaches the gate; the gate consult count
 //       stays what the mutation count was.
+//   V7  NEVER mode (ADR 01, Huginn docs/decisions/adr-01.md — Dan's ruling
+//       2026-11-27: "Never is an auto-refuse, and any feedback to the model
+//       should say so"): a mutation verdict in NEVER mode is refused WITHOUT
+//       pausing — no modal consult — decision 'declined', nothing applied, and
+//       the toolError content NAMES the auto-refuse and the mode (model-side
+//       complaint is the model's problem, not apparatus law — nothing here
+//       asserts it).
+//   V8  YOLO mode (ADR 01: "YOLO is an auto-approve, and any tool user notice
+//       to the user should say so if reasonable practicable"): mutation applied
+//       without pausing — no modal consult — decision 'approved' + GateOutcome
+//       NOTICE saying it was auto-approved (the surfacing half rides the
+//       client-wiring leg; smoke observable H3.8).
+//   V9  AUTOAPPROVE rides prior law D-13 (Ledger §2.2: detector = web-tool-class
+//       call in the current turn history): no external reading this turn →
+//       auto-approve + notice, no consult; external reading present → that turn's
+//       mutations DOWNGRADE to ASK parity (the modal consults again).
 //
 // CHOICES (disclosed, executor's unless canon fixes them):
 //   - Number f44 continues the record chain (f42 manifest, f43 validator).
@@ -66,6 +82,13 @@
 //       the baseline, Ledger §11; the D-5 per-result face is docket R2's).
 //   - decline toolError content wording is executor's; the ANATOMY (ToolError-
 //     Envelope) and the channel (§2) are law.
+//   - Mode policy: routeThroughGate takes a policy object ({mode: ApprovalMode;
+//     externalReadingThisTurn?: boolean}, default ASK) — executor's shape; the
+//     SEMANTICS are ruled by ADR 01 (Huginn docs/decisions/adr-01.md, Dan's act
+//     2026-11-27) and the detector meaning by D-13 (Ledger §2.2) — the boolean is
+//     the loop's to compute per D-13 ("no NLP, no content tracking").
+//   - GateOutcome.notice carries the auto-decision wording (executor anatomy for
+//     the ruling's "notice should say so if reasonable practicable").
 //   - The fake gate below implements the committed ApprovalGate interface
 //     (approval-gate.ts:36-39) structurally; the null answer mirrors the
 //     committed pre-abort path (approval-gate.ts:75-78) — the fixture tests
@@ -232,9 +255,82 @@ async function main(): Promise<void> {
             `V6: the router itself must refuse a non-mutation call (read families are never gated, §2) — spy ${JSON.stringify(gateSpy)}`);
     }
 
+    // ---------- V7 — ADR 01: NEVER is an auto-refuse, feedback says so ----------
+    {
+        const files = new Map<string, string>([['notes/a.md', 'A body.']]);
+        const applied: string[] = [];
+        const consulted: string[] = [];
+        const gate: ApprovalGate = {
+            approve: async (request: ApprovalRequest, _signal?: AbortSignalLike): Promise<ApprovalResult | null> => {
+                consulted.push(String(request.targetPath));
+                return { approved: true };
+            },
+        };
+        const verdict = validateToolCall('vault__write', { path: 'notes/a.md', content: 'A new.' });
+        const request = buildApprovalRequest('vault__write', verdict.resolved, 'A body.', 'A new.');
+        const outcome = await routeThroughGate(gate, 'vault__write', request, undefined, { mode: 'NEVER' });
+        check(outcome.decision === 'declined',
+            `V7: NEVER must dress 'declined' (auto-refuse) — got ${JSON.stringify(outcome.decision)}`);
+        check(consulted.length === 0,
+            `V7: NEVER pauses nothing — modal consults ${JSON.stringify(consulted)}`);
+        const err = outcome.toolError;
+        check(err !== undefined && err.role === 'tool' && err.is_error === true
+            && err.name === 'vault__write' && err.content.includes('NEVER')
+            && err.content.includes('auto-refused'),
+            `V7: feedback to the model must NAME the auto-refuse and the mode (ruling verbatim) — got ${JSON.stringify(err)}`);
+        check(applied.length === 0 && files.get('notes/a.md') === 'A body.',
+            'V7: an auto-refuse applies nothing');
+    }
+
+    // ---------- V8 — ADR 01: YOLO is an auto-approve, notice says so ----------
+    {
+        const files = new Map<string, string>([['notes/a.md', 'A body.']]);
+        const consulted: string[] = [];
+        const gate: ApprovalGate = {
+            approve: async (request: ApprovalRequest, _signal?: AbortSignalLike): Promise<ApprovalResult | null> => {
+                consulted.push(String(request.targetPath));
+                return { approved: true };
+            },
+        };
+        const verdict = validateToolCall('vault__write', { path: 'notes/a.md', content: 'A new.' });
+        const request = buildApprovalRequest('vault__write', verdict.resolved, 'A body.', 'A new.');
+        const outcome = await routeThroughGate(gate, 'vault__write', request, undefined, { mode: 'YOLO' });
+        check(outcome.decision === 'approved',
+            `V8: YOLO auto-approves — got ${JSON.stringify(outcome.decision)}`);
+        check(consulted.length === 0,
+            `V8: YOLO pauses nothing — modal consults ${JSON.stringify(consulted)}`);
+        check(typeof outcome.notice === 'string' && outcome.notice.includes('YOLO')
+            && outcome.notice.includes('auto-approved'),
+            `V8: the user-notice anatomy must say it was auto-approved (ruling verbatim; surfacing half rides the client leg / H3.8) — got ${JSON.stringify(outcome.notice)}`);
+        check(files.get('notes/a.md') === 'A body.',
+            'V8 (scope note): applying is the client loop act — this leg pins the decision + notice, not the write');
+    }
+
+    // ---------- V9 — D-13 law: AUTOAPPROVE downgrades to ASK on external reading ----------
+    {
+        const consulted: string[] = [];
+        const gate: ApprovalGate = {
+            approve: async (request: ApprovalRequest, _signal?: AbortSignalLike): Promise<ApprovalResult | null> => {
+                consulted.push(String(request.targetPath));
+                return { approved: true };
+            },
+        };
+        const verdict = validateToolCall('vault__append', { path: 'notes/a.md', content: ' more.' });
+        const request = buildApprovalRequest('vault__append', verdict.resolved, 'A body.', 'A body. more.');
+        const auto = await routeThroughGate(gate, 'vault__append', request, undefined, { mode: 'AUTOAPPROVE' });
+        check(auto.decision === 'approved' && typeof auto.notice === 'string'
+            && auto.notice.includes('AUTOAPPROVE'),
+            `V9: AUTOAPPROVE without external reading this turn auto-approves + notices — got ${JSON.stringify(auto.decision)} / ${JSON.stringify(auto.notice)}`);
+        check(consulted.length === 0, `V9: auto-path consults nothing — got ${JSON.stringify(consulted)}`);
+        const ask = await routeThroughGate(gate, 'vault__append', request, undefined,
+            { mode: 'AUTOAPPROVE', externalReadingThisTurn: true });
+        check(ask.decision === 'approved' && consulted.join(',') === 'notes/a.md',
+            `V9: external reading this turn DOWNGRADES to ASK parity (D-13 verbatim) — consults ${JSON.stringify(consulted)}`);
+    }
+
     // ApprovalMode import used: the enum is law (D-4); mode routing (NEVER/
-    // AUTOAPPROVE/YOLO semantics) is owed at the client-wiring leg — ASK is the
-    // default and what this leg polices. The type import keeps the reference.
+    // AUTOAPPROVE/YOLO semantics) is ruled by ADR 01 (Dan's act 2026-11-27) and
+    // policed at V7-V9. The type import keeps the reference.
     void ('ASK' as ApprovalMode);
 
     console.log(failures.length === 0

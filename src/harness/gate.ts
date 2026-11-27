@@ -21,6 +21,7 @@
 import { computeDiff, renameDiff } from './diff.ts';
 import { MANIFEST } from '../manifest/manifest.ts';
 import type { ApprovalGate, ApprovalRequest, ApprovalResult } from './approval-gate.ts';
+import type { ApprovalMode } from '../settings.ts';
 import type { ToolErrorEnvelope } from './validator.ts';
 import type { AbortSignalLike } from '../llm/client.ts';
 import type { DiffResult } from '../recipes/types.ts';
@@ -32,6 +33,10 @@ export interface GateOutcome {
     toolError?: ToolErrorEnvelope;
     /** The raw gate answer when a decision was made (client records ride it). */
     approval?: ApprovalResult;
+    /** Auto-decisions (ADR 01 modes): the wording the client surfaces to the
+     * user where it reasonably can ("any tool user notice … should say so if
+     * reasonable practicable" — ADR 01, Dan's act 2026-11-27). */
+    notice?: string;
 }
 
 export function buildApprovalRequest(
@@ -65,17 +70,56 @@ export function buildApprovalRequest(
     };
 }
 
+// ADR 01 (Huginn docs/decisions/adr-01.md, Accepted 2026-11-27): NEVER auto-refuses
+// (feedback names the auto-refuse; whether the model tells the user is the model's
+// problem), YOLO auto-approves (user notice says so where practicable), AUTOAPPROVE
+// rides D-13 (Ledger §2.2: web-tool-class call in the current turn history downgrades
+// that turn's mutation approvals to ASK). The detector arrives as a boolean — the
+// loop computes it ("no NLP, no content tracking", D-13). Mode routing is mutation-
+// only: reads were refused above before any mode is consulted (D-4/D-1).
+export interface ApprovalPolicy {
+    mode: ApprovalMode;
+    externalReadingThisTurn?: boolean;
+}
+
 export async function routeThroughGate(
     gate: ApprovalGate,
     name: string,
     request: ApprovalRequest,
     signal?: AbortSignalLike,
+    policy: ApprovalPolicy = { mode: 'ASK' },
 ): Promise<GateOutcome> {
-    // Read families are never gated (Design Report §2, D-1/D-4): the ROUTER
-    // enforces it, so a client-wiring slip cannot quietly gate a read.
+    // Read families are never gated under ANY mode (Design Report §2, D-1/D-4):
+    // the ROUTER enforces it, so a client-wiring slip cannot quietly gate a read.
     const verb = MANIFEST.find((v) => v.name === name);
     if (verb === undefined || !verb.mutation) return { decision: 'not-gated' };
 
+    if (policy.mode === 'NEVER') {
+        return {
+            decision: 'declined',
+            toolError: {
+                role: 'tool',
+                name,
+                content: `approval mode NEVER: this change from '${name}' was auto-refused — the user was not asked. `
+                    + 'Nothing was applied; the model may apologize, change plan, or stop (telling the user is the model\'s choice).',
+                is_error: true,
+            },
+        };
+    }
+    if (policy.mode === 'YOLO') {
+        return {
+            decision: 'approved',
+            notice: `auto-approved (YOLO mode): the '${name}' change was applied without a pause.`,
+        };
+    }
+    if (policy.mode === 'AUTOAPPROVE' && policy.externalReadingThisTurn !== true) {
+        return {
+            decision: 'approved',
+            notice: `auto-approved (AUTOAPPROVE mode; no external reading this turn): the '${name}' change was applied without a pause.`,
+        };
+    }
+
+    // ASK — and AUTOAPPROVE WITH external reading this turn, D-13's downgrade:
     const approval = await gate.approve(request, signal);
     // null = the committed Stop path (approval-gate.ts:64-70): an interrupt is
     // not a decision (§6), so it never dresses as a decline (§3.8 law).
