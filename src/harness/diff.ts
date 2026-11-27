@@ -76,10 +76,30 @@ function deepEqual(a: unknown, b: unknown): boolean {
     return true;
 }
 
+/**
+ * D-14 (Restart Ledger §2.2:60, ratified 2026-11-26, OQ-D :269): "a rename's
+ * diff is its path change" — the whole diff is ONE entry: old path → new path,
+ * body unchanged stated. The '(path)' slot marks a rename entry; the renderDiff
+ * branch turns it into exactly the D-14 wording the modal shows.
+ */
+export function renameDiff(oldPath: string, newPath: string): DiffResult {
+    return { changes: [{ path: '(path)', oldValue: oldPath, newValue: newPath }] };
+}
+
 export function renderDiff(diff: DiffResult): string {
     if (diff.changes.length === 0) return 'No changes.';
     const lines: string[] = [];
     for (const c of diff.changes) {
+        // D-14 (Restart Ledger §2.2:60 verbatim: the modal shows `old path → new
+        // path`; body unchanged stated. That is the whole diff): the rename
+        // entry (renameDiff's '(path)' slot — a body-diff path can never collide,
+        // measured: recursive paths are '' → '.' or `.key…`) renders as the path
+        // change alone.
+        if (c.path === '(path)') {
+            lines.push(`${String(c.oldValue)} → ${String(c.newValue)}`);
+            lines.push('body unchanged.');
+            continue;
+        }
         lines.push(`--- ${c.path}`);
         lines.push(`old: ${JSON.stringify(c.oldValue)}`);
         lines.push(`new: ${JSON.stringify(c.newValue)}`);
