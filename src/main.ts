@@ -18,6 +18,9 @@ import { installDefaultRecipes } from './recipes/installer.ts';
 import type { LoadedRecipe } from './recipes/types.ts';
 import type { MuninnApi } from './muninn-api.ts';
 import { ChatController } from './chat/chat.ts';
+import { OllamaToolsClient } from './chat/turn.ts';
+import { ObsidianApprovalGate } from './harness/approval-gate.ts';
+import { createVerbExecutors, createSurfaceRead } from './harness/surface.ts';
 import { HuginnChatView, HUGINN_CHAT_VIEW_TYPE } from './ui/chat-view.ts';
 
 const MUNINN_PLUGIN_ID = 'muninn';
@@ -33,6 +36,9 @@ export default class HuginnPlugin extends Plugin {
     settings: HuginnSettings = { ...DEFAULT_SETTINGS };
     private muninnApi: MuninnApi | null = null;
     private chatClient: OllamaChatClient | null = null;
+    // The turn anatomy's transport (client wiring, step 6 leg 4): native-tools,
+    // stream — same endpoint/model as the single-shot chatClient above.
+    private turnClient: OllamaToolsClient | null = null;
     private recipes: LoadedRecipe[] = [];
     private userMemory: UserMemory | null = null;
     private chatSummaryMemory: ChatSummaryMemory | null = null;
@@ -89,6 +95,11 @@ export default class HuginnPlugin extends Plugin {
                     return;
                 }
                 this.muninnApi = api;
+                this.turnClient = new OllamaToolsClient({
+                    baseUrl: this.settings.ollamaUrl,
+                    model: this.settings.ollamaChatModel,
+                    timeoutMs: this.settings.chatTimeoutMs,
+                });
                 this.chatClient = new OllamaChatClient({
                     baseUrl: this.settings.ollamaUrl,
                     model: this.settings.ollamaChatModel,
@@ -212,6 +223,16 @@ export default class HuginnPlugin extends Plugin {
             controller: new ChatController({
                 app: this.app,
                 llmClient,
+                turnClient: this.turnClient ?? new OllamaToolsClient({
+                    baseUrl: this.settings.ollamaUrl,
+                    model: this.settings.ollamaChatModel,
+                    timeoutMs: this.settings.chatTimeoutMs,
+                }),
+                approvalMode: this.settings.approvalMode,
+                turnOpBound: this.settings.turnOpBound,
+                gate: new ObsidianApprovalGate(this.app),
+                executors: createVerbExecutors(this.app, this.muninnApi),
+                readCurrent: createSurfaceRead(this.app).readCurrent,
                 getUserMemoryContext: async (scope?: string) => {
                     const ctx = await this.userMemory?.getContext(scope);
                     return ctx?.text ?? '';
