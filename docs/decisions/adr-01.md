@@ -43,3 +43,14 @@ routing is mutation-only; the router enforces the refusal of non-mutation calls 
 - The detector input is a boolean the client loop computes per D-13 (the manifest has
   no web-tool verbs today — the detector rides whatever external tools exist at
   wiring time; no NLP, no content tracking, per D-13).
+
+## Addendum (dated 2026-11-27, client-wiring leg measured — no decision changed)
+
+- The D-13 detector's `externalReadingThisTurn` rides `runTurn` as a caller-supplied
+  `webToolClass?: (name: string) => boolean` predicate over EXECUTED call names
+  (`src/chat/turn.ts:227`, applied at `:339`): the plumbing shape only. Measured at this
+  leg, the manifest still names no external-reading verb (`vault__*` structure reads,
+  `vault__searchVault` lexical, `command__*` palette, `muninn__notesLike` door — the door
+  reads the vault, not the web), so the downgrade stays dormant until an external-reading
+  family exists. The ruling's semantics are untouched; the gap is disclosed where the
+  smoke can see it (schedule block H4, item 6).
