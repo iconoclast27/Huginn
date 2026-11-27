@@ -9,4 +9,4 @@ Design law: `docs/Design Report -- Pointer.md` → Muninn root. Docket: Muninn r
 
 | ADR | Title | Status |
 |---|---|---|
-| — | none accepted yet in this world | |
+| 01 | Approval-mode routing (NEVER auto-refuses, YOLO auto-approves) | Accepted 2026-11-27 |
