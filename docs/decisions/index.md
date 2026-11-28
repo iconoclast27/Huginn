@@ -11,3 +11,4 @@ Design law: `docs/Design Report -- Pointer.md` → Muninn root. Docket: Muninn r
 |---|---|---|
 | 01 | Approval-mode routing (NEVER auto-refuses, YOLO auto-approves) | Accepted 2026-11-27 |
 | — | The narrowed door contract (Muninn) | **Accepted 2026-11-27** (Dan's ruling act "ratified."; Muninn root: `docs/decisions/adr-01.md` — shared doctrine is Muninn's; pointer stub, no restatement; Huginn mirror awaits its own leg per T15) |
+| — | The verbose lane trace mode (Muninn law, Huginn surface) | **Accepted 2026-11-27** (Dan's ruling act "The proposal is approved."; Muninn root: `docs/decisions/adr-02.md` — shared doctrine is Muninn's; pointer stub, no restatement; Huginn's switch/taps land at its own packet leg, chain-green adjudication) |
